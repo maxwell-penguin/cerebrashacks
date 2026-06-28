@@ -20,7 +20,7 @@ export default function ChatPanel({ apiBase, vision, finalCode }: Props) {
     {
       sender: 'agent',
       agentName: 'System',
-      text: 'Welcome to SketchStorm Co-pilot! Select an agent above and ask for architectural suggestions, layout design refinements, or feedback on visual issues.',
+      text: 'Ask any agent for suggestions or feedback.',
     },
   ]);
   const [input, setInput] = useState('');

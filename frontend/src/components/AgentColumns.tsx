@@ -45,6 +45,8 @@ interface Props {
 export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRefine, isRefining }: Props) {
   const criticIssues = issues.filter(i => i.agent === 'Critic');
 
+  const allIdle = AGENTS.every(({ name }) => agents[name].status === 'idle');
+
   // Track expanded state per agent; initialise lazily on first interaction
   const [expanded, setExpanded] = useState<Partial<Record<AgentName, boolean>>>({});
 
@@ -68,7 +70,21 @@ export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRef
         )}
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+        {allIdle ? (
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm px-3 py-3">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">6 agents ready</p>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {AGENTS.map(({ label }, i) => (
+                <span key={label}>
+                  <span className="font-semibold text-slate-700">{label}</span>
+                  {i < AGENTS.length - 1 && <span className="text-slate-300 mx-1">·</span>}
+                </span>
+              ))}
+            </p>
+          </div>
+        ) : null}
         {AGENTS.map(({ name, label, icon }) => {
+          if (allIdle) return null;
           const { status, message } = agents[name];
           const cfg = STATUS_CONFIG[status];
           const open = isExpanded(name, status);

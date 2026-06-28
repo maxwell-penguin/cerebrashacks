@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import AgentColumns from './components/AgentColumns';
 import ChatPanel from './components/ChatPanel';
 import EditorPane from './components/EditorPane';
+import LandingScreen from './components/LandingScreen';
 import UploadPane from './components/UploadPane';
 import IssuesPanel from './components/IssuesPanel';
 import HistoryBar, { RunHistoryItem } from './components/HistoryBar';
@@ -10,6 +11,16 @@ import { usePipeline } from './hooks/usePipeline';
 const WS_URL = 'ws://localhost:8000/ws';
 
 export default function App() {
+  const [showLanding, setShowLanding] = useState(true);
+
+  if (showLanding) {
+    return <LandingScreen onGetStarted={() => setShowLanding(false)} />;
+  }
+
+  return <Studio />;
+}
+
+function Studio() {
   const {
     state,
     setState,
@@ -106,9 +117,14 @@ export default function App() {
     <div className="flex flex-col h-screen bg-slate-50 text-slate-700">
       {/* Header */}
       <header className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-white border-b border-slate-200 shadow-sm z-10">
-        <div className="flex items-center gap-2.5">
-          <span className="text-lg font-bold tracking-tight text-slate-800">⚡ SketchStorm</span>
-          <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider font-mono">Studio</span>
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col leading-tight">
+            <span className="text-lg font-bold tracking-tight text-slate-800">⚡ SketchStorm Studio</span>
+            <span className="text-[10px] text-slate-400 font-medium tracking-wide">Sketch it. Watch six AI agents build it live.</span>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 flex items-center gap-1 shrink-0">
+            ⚡ Powered by Gemma 4 on Cerebras
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
