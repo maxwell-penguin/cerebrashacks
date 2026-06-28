@@ -112,18 +112,6 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2">
-          {inputMode === 'sketch' && (
-            <input
-              type="text"
-              placeholder="Optional description…"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              disabled={isRunning}
-              className="text-xs bg-slate-100 border border-slate-300 rounded px-2.5 py-1.5 text-slate-800
-                         placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 w-52 transition-colors"
-            />
-          )}
-
           {(isDone || isError) && (
             <button
               onClick={handleReset}

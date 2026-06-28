@@ -423,195 +423,190 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </div>
       </div>
 
-      {/* Refine Region (Design Mode Panel) */}
-      {isDesignMode && finalCode && (
-        <div className="bg-white border-b border-slate-200 px-4 py-3 flex flex-col gap-3 animate-fade-in shrink-0">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-              <span>🎨</span> Refine Region (Design Mode)
-            </span>
-            {refinementError && (
-              <span className="text-xs text-rose-600 font-semibold flex items-center gap-1 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded">
-                ⚠️ {refinementError}
-              </span>
-            )}
-            {refinementSuccess && (
-              <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded animate-fade-in">
-                ✓ Success: changed {refinementSuccess.diffStats.lines_changed} lines ({(refinementSuccess.diffStats.change_ratio * 100).toFixed(1)}%)
-              </span>
-            )}
-          </div>
+      {/* Content area — relative so floating Design Mode toolbar can anchor to it */}
+      <div className="flex-1 overflow-hidden relative">
+        {/* Editor */}
+        <div className={`overflow-hidden ${tab === 'editor' ? 'absolute inset-0 flex flex-col' : 'hidden'}`}>
+          {errorMsg ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 text-center select-none animate-fade-in">
+              <div className="max-w-md bg-white rounded-xl border border-slate-200 p-6 shadow-md">
+                <div className="text-4xl mb-3">⚠️</div>
+                <h3 className="text-base font-bold text-slate-800 mb-2">Generation Stopped</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  {errorMsg}
+                </p>
+              </div>
+            </div>
+          ) : displayCode ? (
+            <>
+              <div className="flex-1 min-h-0">
+                <Editor
+                  height="100%"
+                  defaultLanguage="typescript"
+                  value={displayCode}
+                  theme="vs-dark"
+                  onChange={(val) => {
+                    if (onChangeCode && val !== undefined) {
+                      onChangeCode(val);
+                    }
+                  }}
+                  options={{
+                    readOnly: isRunning || !finalCode,
+                    minimap: { enabled: false },
+                    fontSize: 12,
+                    lineNumbers: 'on',
+                    scrollBeyondLastLine: false,
+                    wordWrap: 'on',
+                    automaticLayout: true,
+                    fontFamily: '"Fira Code", "Cascadia Code", monospace',
+                  }}
+                />
+              </div>
+              {/* Copy and Download buttons */}
+              <div className="shrink-0 px-3 py-2 border-t border-slate-200 bg-slate-100 flex justify-end gap-2">
+                <button
+                  onClick={handleDownloadZip}
+                  className="text-[11px] px-3 py-1 rounded font-semibold transition-all
+                             bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200
+                             shadow-sm flex items-center gap-1.5 active:scale-[0.97]"
+                >
+                  <span>📦</span> Download starter project
+                </button>
+                <button
+                  onClick={handleCopy}
+                  className="text-[11px] px-3 py-1 rounded font-semibold transition-all
+                             bg-white hover:bg-slate-50 text-slate-600 border border-slate-300
+                             shadow-sm flex items-center gap-1.5 active:scale-[0.97]"
+                >
+                  {copied ? (
+                    <>
+                      <span className="text-emerald-600">✓</span> Copied!
+                    </>
+                  ) : (
+                    <>
+                      <span>📋</span> Copy code
+                    </>
+                  )}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-slate-450 bg-slate-50 text-sm">
+              Waiting for code generation…
+            </div>
+          )}
+        </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col gap-1 w-44 shrink-0">
-              <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-450">Region</label>
+        {/* Preview iframe */}
+        <div className={`overflow-hidden ${tab === 'preview' ? 'absolute inset-0 flex flex-col' : 'hidden'}`}>
+          {errorMsg ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 text-center select-none animate-fade-in">
+              <div className="max-w-md bg-white rounded-xl border border-slate-200 p-6 shadow-md">
+                <div className="text-4xl mb-3">⚠️</div>
+                <h3 className="text-base font-bold text-slate-800 mb-2">Generation Stopped</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  {errorMsg}
+                </p>
+              </div>
+            </div>
+          ) : srcdoc ? (
+            <iframe
+              ref={iframeRef}
+              srcDoc={srcdoc}
+              className="w-full h-full border-0 bg-white"
+              sandbox="allow-scripts"
+              title="Live preview"
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-slate-450 bg-slate-50 text-sm">
+              Preview will appear here once generation completes
+            </div>
+          )}
+        </div>
+
+        {/* Design Mode — floating toolbar pinned to bottom, overlays content */}
+        {isDesignMode && finalCode && (
+          <div className="absolute bottom-0 inset-x-0 z-20 animate-fade-in">
+            {/* Pending Confirmation Safety Net — sits above the toolbar */}
+            {pendingRefinement && (
+              <div className="mx-3 mb-1 bg-amber-50 border border-amber-200 rounded-lg p-3 flex flex-col gap-2 shadow-lg animate-fade-in">
+                <div className="flex items-start gap-2">
+                  <span className="text-base">⚠️</span>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-bold text-amber-900">{pendingRefinement.warning || "Review refinement changes"}</h4>
+                    <p className="text-[11px] text-amber-800 mt-0.5 font-medium">
+                      Changed <strong>{pendingRefinement.diffStats.lines_changed}</strong> of <strong>{pendingRefinement.diffStats.lines_total}</strong> lines ({(pendingRefinement.diffStats.change_ratio * 100).toFixed(1)}% change ratio)
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={handleDiscardRefinement}
+                    className="text-[11px] font-semibold px-3 py-1 rounded bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition-colors"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    onClick={handleKeepRefinement}
+                    className="text-[11px] font-semibold px-3 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-colors"
+                  >
+                    Keep this change
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Main toolbar row */}
+            <div className="bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-2px_12px_rgba(0,0,0,0.08)] px-3 py-2 flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-1">
+                🎨 Region
+              </span>
+
               <select
                 value={selectedRegion}
                 onChange={e => setSelectedRegion(e.target.value)}
                 disabled={refinementLoading || !!pendingRefinement}
-                className="text-xs bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-indigo-500 w-full"
+                className="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 text-slate-800 focus:outline-none focus:border-indigo-500 w-32 shrink-0"
               >
                 <option value="Header">Header</option>
                 <option value="Sidebar">Sidebar</option>
                 <option value="Main content">Main content</option>
                 <option value="Footer">Footer</option>
               </select>
-            </div>
 
-            <div className="flex-1 flex flex-col gap-1">
-              <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-450">Change Description</label>
               <input
                 type="text"
                 value={refinementText}
                 onChange={e => setRefinementText(e.target.value)}
                 disabled={refinementLoading || !!pendingRefinement}
-                placeholder="Describe the exact change you want in this area..."
-                className="text-xs bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-indigo-500 w-full"
+                placeholder="Describe the change you want…"
+                className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-slate-800 focus:outline-none focus:border-indigo-500 min-w-0"
               />
-            </div>
 
-            <button
-              onClick={handleApplyRefinement}
-              disabled={refinementLoading || !refinementText.trim() || !!pendingRefinement}
-              className="text-xs px-4 py-1.5 mt-4 rounded font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-sm flex items-center gap-1.5"
-            >
-              {refinementLoading ? (
-                <>
-                  <span className="w-3 h-3 border-2 border-white/35 border-t-white rounded-full animate-spin" />
-                  Refining…
-                </>
-              ) : (
-                'Apply'
+              {refinementError && (
+                <span className="text-[10px] text-rose-600 font-semibold shrink-0">⚠️ {refinementError}</span>
               )}
-            </button>
-          </div>
+              {refinementSuccess && !refinementError && (
+                <span className="text-[10px] text-emerald-600 font-semibold shrink-0 animate-fade-in">
+                  ✓ {refinementSuccess.diffStats.lines_changed} lines changed
+                </span>
+              )}
 
-          {/* Pending Confirmation Safety Net */}
-          {pendingRefinement && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3.5 flex flex-col gap-2.5 animate-fade-in">
-              <div className="flex items-start gap-2.5">
-                <span className="text-lg">⚠️</span>
-                <div className="flex-1">
-                  <h4 className="text-xs font-bold text-amber-900">{pendingRefinement.warning || "Review refinement changes"}</h4>
-                  <p className="text-[11px] text-amber-800 mt-0.5 font-medium">
-                    Diff stats: changed <strong>{pendingRefinement.diffStats.lines_changed}</strong> lines out of <strong>{pendingRefinement.diffStats.lines_total}</strong> total lines (change ratio: <strong>{(pendingRefinement.diffStats.change_ratio * 100).toFixed(1)}%</strong>).
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end gap-2.5">
-                <button
-                  onClick={handleDiscardRefinement}
-                  className="text-[11px] font-semibold px-3 py-1 rounded bg-white hover:bg-slate-50 text-slate-700 border border-slate-350 transition-colors"
-                >
-                  Discard
-                </button>
-                <button
-                  onClick={handleKeepRefinement}
-                  className="text-[11px] font-semibold px-3 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-colors"
-                >
-                  Keep this change
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Editor */}
-      <div className={`flex-1 overflow-hidden ${tab === 'editor' ? 'flex flex-col' : 'hidden'}`}>
-        {errorMsg ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 text-center select-none animate-fade-in">
-            <div className="max-w-md bg-white rounded-xl border border-slate-200 p-6 shadow-md">
-              <div className="text-4xl mb-3">⚠️</div>
-              <h3 className="text-base font-bold text-slate-800 mb-2">Generation Stopped</h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                {errorMsg}
-              </p>
-            </div>
-          </div>
-        ) : displayCode ? (
-          <>
-            <div className="flex-1 min-h-0">
-              <Editor
-                height="100%"
-                defaultLanguage="typescript"
-                value={displayCode}
-                theme="vs-dark"
-                onChange={(val) => {
-                  if (onChangeCode && val !== undefined) {
-                    onChangeCode(val);
-                  }
-                }}
-                options={{
-                  readOnly: isRunning || !finalCode,
-                  minimap: { enabled: false },
-                  fontSize: 12,
-                  lineNumbers: 'on',
-                  scrollBeyondLastLine: false,
-                  wordWrap: 'on',
-                  automaticLayout: true,
-                  fontFamily: '"Fira Code", "Cascadia Code", monospace',
-                }}
-              />
-            </div>
-            {/* Copy and Download buttons */}
-            <div className="shrink-0 px-3 py-2 border-t border-slate-200 bg-slate-100 flex justify-end gap-2">
               <button
-                onClick={handleDownloadZip}
-                className="text-[11px] px-3 py-1 rounded font-semibold transition-all
-                           bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200
-                           shadow-sm flex items-center gap-1.5 active:scale-[0.97]"
+                onClick={handleApplyRefinement}
+                disabled={refinementLoading || !refinementText.trim() || !!pendingRefinement}
+                className="text-xs px-3 py-1 rounded font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-sm flex items-center gap-1.5 shrink-0"
               >
-                <span>📦</span> Download starter project
-              </button>
-              <button
-                onClick={handleCopy}
-                className="text-[11px] px-3 py-1 rounded font-semibold transition-all
-                           bg-white hover:bg-slate-50 text-slate-600 border border-slate-300
-                           shadow-sm flex items-center gap-1.5 active:scale-[0.97]"
-              >
-                {copied ? (
+                {refinementLoading ? (
                   <>
-                    <span className="text-emerald-600">✓</span> Copied!
+                    <span className="w-3 h-3 border-2 border-white/35 border-t-white rounded-full animate-spin" />
+                    Refining…
                   </>
                 ) : (
-                  <>
-                    <span>📋</span> Copy code
-                  </>
+                  'Apply'
                 )}
               </button>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-450 bg-slate-50 text-sm">
-            Waiting for code generation…
-          </div>
-        )}
-      </div>
-
-      {/* Preview iframe */}
-      <div className={`flex-1 overflow-hidden ${tab === 'preview' ? 'flex flex-col' : 'hidden'}`}>
-        {errorMsg ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 text-center select-none animate-fade-in">
-            <div className="max-w-md bg-white rounded-xl border border-slate-200 p-6 shadow-md">
-              <div className="text-4xl mb-3">⚠️</div>
-              <h3 className="text-base font-bold text-slate-800 mb-2">Generation Stopped</h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                {errorMsg}
-              </p>
-            </div>
-          </div>
-        ) : srcdoc ? (
-          <iframe
-            ref={iframeRef}
-            srcDoc={srcdoc}
-            className="w-full h-full border-0 bg-white"
-            sandbox="allow-scripts"
-            title="Live preview"
-          />
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-450 bg-slate-50 text-sm">
-            Preview will appear here once generation completes
           </div>
         )}
       </div>

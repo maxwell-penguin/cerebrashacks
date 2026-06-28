@@ -6,7 +6,7 @@ interface Props {
 }
 
 export default function IssuesPanel({ issues }: Props) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Group issues by agent
   const grouped = issues.reduce((acc, issue) => {

@@ -274,6 +274,25 @@ export default function UploadPane({
           </div>
         )}
 
+        {/* Context field — sketch mode only */}
+        {inputMode === 'sketch' && (
+          <div className="flex flex-col gap-1 shrink-0">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider select-none">
+              Add context <span className="font-normal normal-case">(optional)</span>
+            </label>
+            <input
+              type="text"
+              disabled={disabled}
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="e.g. dark theme, mobile-first, add a chart area…"
+              className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800
+                         placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-1
+                         focus:ring-indigo-400 transition-all shadow-sm disabled:opacity-50"
+            />
+          </div>
+        )}
+
         {/* Vision output summary */}
         {inputMode === 'sketch' && vision && (
           <div className="rounded-lg bg-white border border-slate-200 p-3 text-xs space-y-1.5 shadow-sm">
