@@ -15,6 +15,7 @@ interface Props {
     diff_stats: { lines_changed: number; lines_total: number; change_ratio: number };
     warning: string | null;
   }>;
+  errorMsg?: string;
 }
 
 const REACT_HOOKS = ['useState', 'useEffect', 'useMemo', 'useCallback', 'useRef', 'useContext'];
@@ -102,6 +103,7 @@ export default function EditorPane({
   criticState,
   isRunning,
   refineRegion,
+  errorMsg,
 }: Props) {
   const [tab, setTab] = useState<Tab>('editor');
   const [srcdoc, setSrcdoc] = useState('');
@@ -517,7 +519,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
       {/* Editor */}
       <div className={`flex-1 overflow-hidden ${tab === 'editor' ? 'flex flex-col' : 'hidden'}`}>
-        {displayCode ? (
+        {errorMsg ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 text-center select-none animate-fade-in">
+            <div className="max-w-md bg-white rounded-xl border border-slate-200 p-6 shadow-md">
+              <div className="text-4xl mb-3">⚠️</div>
+              <h3 className="text-base font-bold text-slate-800 mb-2">Generation Stopped</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                {errorMsg}
+              </p>
+            </div>
+          </div>
+        ) : displayCode ? (
           <>
             <div className="flex-1 min-h-0">
               <Editor
@@ -579,7 +591,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
       {/* Preview iframe */}
       <div className={`flex-1 overflow-hidden ${tab === 'preview' ? 'flex flex-col' : 'hidden'}`}>
-        {srcdoc ? (
+        {errorMsg ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 text-center select-none animate-fade-in">
+            <div className="max-w-md bg-white rounded-xl border border-slate-200 p-6 shadow-md">
+              <div className="text-4xl mb-3">⚠️</div>
+              <h3 className="text-base font-bold text-slate-800 mb-2">Generation Stopped</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                {errorMsg}
+              </p>
+            </div>
+          </div>
+        ) : srcdoc ? (
           <iframe
             ref={iframeRef}
             srcDoc={srcdoc}

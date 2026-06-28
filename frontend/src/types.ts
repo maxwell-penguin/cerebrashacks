@@ -45,6 +45,7 @@ export type WSMessage =
       issues?: NormalizedIssue[];
       vision?: Record<string, unknown>;
       architecture?: Record<string, unknown>;
+      message?: string;
     };
 
 export interface UnifiedIssue {

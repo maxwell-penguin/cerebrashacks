@@ -147,6 +147,7 @@ async def generate(
         vision=VisionParseResult.model_validate(vision_data) if vision_data else None,
         architecture=ArchitectResult.model_validate(arch_data) if arch_data else None,
         code=result_holder.get("code", ""),
+        accessibility_code=result_holder.get("accessibility_code"),
         audit=AuditResult.model_validate(audit_data) if audit_data else None,
         visual_check=VisualCheckResult.model_validate(visual_data) if visual_data else None,
     )
@@ -502,8 +503,40 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                     try:
                         image_bytes = base64.b64decode(image_b64)
                     except Exception as exc:
-                        await ws.send_json({"type": "error", "message": f"Failed to decode image_base64: {exc}"})
+                        await ws.send_json({"type": "error", "message": "That doesn't look like a valid image file."})
+                        await ws.send_json({
+                            "type": "pipeline_complete",
+                            "success": False,
+                            "code": "",
+                            "message": "That doesn't look like a valid image file."
+                        })
                         continue
+
+                    if len(image_bytes) > 10 * 1024 * 1024:
+                        await ws.send_json({"type": "error", "message": "Image file size exceeds the 10MB limit."})
+                        await ws.send_json({
+                            "type": "pipeline_complete",
+                            "success": False,
+                            "code": "",
+                            "message": "Image file size exceeds the 10MB limit."
+                        })
+                        continue
+
+                    from io import BytesIO
+                    from PIL import Image
+                    try:
+                        with Image.open(BytesIO(image_bytes)) as img:
+                            img.load()  # force full decode — verify() is too shallow
+                    except Exception:
+                        await ws.send_json({"type": "error", "message": "That doesn't look like a valid image file."})
+                        await ws.send_json({
+                            "type": "pipeline_complete",
+                            "success": False,
+                            "code": "",
+                            "message": "That doesn't look like a valid image file."
+                        })
+                        continue
+
                 mime = payload.get("mime_type", "image/jpeg")
 
             screenshot_bytes = None

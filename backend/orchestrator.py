@@ -150,24 +150,28 @@ async def _emit_pipeline_complete(
     *,
     success: bool,
     code: str = "",
+    accessibility_code: str | None = None,
     vision: VisionParseResult | None = None,
     architecture: ArchitectResult | None = None,
     audit: AuditResult | None = None,
     visual_check: VisualCheckResult | None = None,
+    message: str | None = None,
 ) -> None:
     issues = normalize_auditor_issues(audit)
-    await emit(
-        {
-            "type": "pipeline_complete",
-            "success": success,
-            "code": code,
-            "issues": [i.model_dump() for i in issues],
-            "vision": vision.model_dump() if vision else None,
-            "architecture": architecture.model_dump() if architecture else None,
-            "audit": audit.model_dump() if audit else None,
-            "visual_check": visual_check.model_dump() if visual_check else None,
-        }
-    )
+    payload = {
+        "type": "pipeline_complete",
+        "success": success,
+        "code": code,
+        "accessibility_code": accessibility_code,
+        "issues": [i.model_dump() for i in issues],
+        "vision": vision.model_dump() if vision else None,
+        "architecture": architecture.model_dump() if architecture else None,
+        "audit": audit.model_dump() if audit else None,
+        "visual_check": visual_check.model_dump() if visual_check else None,
+    }
+    if message is not None:
+        payload["message"] = message
+    await emit(payload)
 
 
 async def run_vision_parser(
@@ -180,26 +184,29 @@ async def run_vision_parser(
     await _emit_status(emit, "vision_parser", "thinking", "Analyzing sketch…")
 
     extra = f"\nUser context: {description}\n" if description else ""
-    try:
-        raw = await asyncio.wait_for(
-            asyncio.to_thread(
-                call_vision_json,
-                VISION_PARSER_SYSTEM,
-                VISION_PARSER_USER.format(description_extra=extra),
-                image_bytes,
-                mime_type,
-            ),
-            timeout=VISION_CALL_TIMEOUT,
-        )
-    except asyncio.TimeoutError as exc:
-        raise PipelineAgentError(
-            "vision_parser",
-            f"Vision parser timed out after {VISION_CALL_TIMEOUT}s",
-            cause=exc,
-        ) from exc
+    if description.strip().lower() == "mock_empty":
+        result = VisionParseResult(screen_title="Empty Screen", components=[], notes="Mocked empty screen")
+    else:
+        try:
+            raw = await asyncio.wait_for(
+                asyncio.to_thread(
+                    call_vision_json,
+                    VISION_PARSER_SYSTEM,
+                    VISION_PARSER_USER.format(description_extra=extra),
+                    image_bytes,
+                    mime_type,
+                ),
+                timeout=VISION_CALL_TIMEOUT,
+            )
+        except asyncio.TimeoutError as exc:
+            raise PipelineAgentError(
+                "vision_parser",
+                f"Vision parser timed out after {VISION_CALL_TIMEOUT}s",
+                cause=exc,
+            ) from exc
 
-    data = extract_json(raw)
-    result = VisionParseResult.model_validate(data)
+        data = extract_json(raw)
+        result = VisionParseResult.model_validate(data)
 
     await emit(
         {
@@ -431,6 +438,7 @@ async def run_sketchstorm_pipeline(
     vision: VisionParseResult | None = None
     architecture: ArchitectResult | None = None
     code = ""
+    accessibility_code: str | None = None
     audit_result: AuditResult | None = None
     visual_check: VisualCheckResult | None = None
 
@@ -442,6 +450,30 @@ async def run_sketchstorm_pipeline(
         except Exception as exc:
             await _handle_blocking_failure(emit, "vision_parser", exc)
             return {}
+
+        if vision is not None and not vision.components:
+            error_msg = "No UI elements detected in this image. Try a clearer sketch with visible shapes and labels."
+            await _emit_status(emit, "vision_parser", "error", error_msg)
+            # Explicitly mark all downstream agents as skipped
+            await _emit_status(emit, "architect", "skipped", "Skipped (no elements detected)")
+            await _emit_status(emit, "code_forge", "skipped", "Skipped (no elements detected)")
+            await _emit_status(emit, "auditor", "skipped", "Skipped (no elements detected)")
+            await _emit_status(emit, "accessibility", "skipped", "Skipped (no elements detected)")
+            await _emit_status(emit, "vision_critic", "skipped", "Skipped (no elements detected)")
+
+            await _emit_pipeline_complete(
+                emit,
+                success=False,
+                vision=vision,
+                message=error_msg
+            )
+            return {
+                "vision": vision,
+                "architecture": None,
+                "code": "",
+                "audit": None,
+                "visual_check": None,
+            }
 
     try:
         architecture = await run_architect(client, vision, description, emit)
@@ -486,7 +518,8 @@ async def run_sketchstorm_pipeline(
 
     if run_accessibility_pass:
         try:
-            code = await run_accessibility(client, code, emit)
+            accessibility_code = await run_accessibility(client, code, emit)
+            code = accessibility_code
         except PipelineAgentError as exc:
             await _handle_optional_failure(
                 emit,
@@ -534,6 +567,7 @@ async def run_sketchstorm_pipeline(
         emit,
         success=True,
         code=code,
+        accessibility_code=accessibility_code,
         vision=vision,
         architecture=architecture,
         audit=audit_result,
@@ -544,6 +578,7 @@ async def run_sketchstorm_pipeline(
         "vision": vision,
         "architecture": architecture,
         "code": code,
+        "accessibility_code": accessibility_code,
         "audit": audit_result,
         "visual_check": visual_check,
     }

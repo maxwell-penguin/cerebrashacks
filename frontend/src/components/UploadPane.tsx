@@ -32,8 +32,15 @@ export default function UploadPane({
     setPreview(previewUrl);
   }, [previewUrl]);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleFile = useCallback(
     (file: File) => {
+      if (!file.type.startsWith('image/')) {
+        setError('Please upload an image file (JPG, PNG).');
+        return;
+      }
+      setError(null);
       const reader = new FileReader();
       reader.onload = e => {
         const dataUri = e.target?.result as string;
@@ -50,7 +57,7 @@ export default function UploadPane({
       e.preventDefault();
       setDragging(false);
       const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('image/')) handleFile(file);
+      if (file) handleFile(file);
     },
     [handleFile],
   );
@@ -168,7 +175,14 @@ export default function UploadPane({
               onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
             />
 
-            {/* Demo Sketch Quick-loaders (for testing & presentation) */}
+            {error && (
+              <div className="text-rose-500 text-xs font-semibold px-2.5 py-1.5 bg-rose-50 border border-rose-100 rounded-lg flex items-center gap-1.5 shadow-sm">
+                <span>⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+             {/* Demo Sketch Quick-loaders (for testing & presentation) */}
             {!preview && (
               <div className="flex flex-col gap-2 w-full shrink-0">
                 <div className="flex gap-2 w-full">
@@ -177,6 +191,7 @@ export default function UploadPane({
                     id="mock-sketch-btn-1"
                     onClick={async (e) => {
                       e.stopPropagation();
+                      setError(null);
                       try {
                         const res = await fetch('/test_sketch.jpg');
                         const blob = await res.blob();
@@ -199,6 +214,7 @@ export default function UploadPane({
                     id="mock-sketch-btn-2"
                     onClick={async (e) => {
                       e.stopPropagation();
+                      setError(null);
                       try {
                         const res = await fetch('/test_sketch_dashboard.jpg');
                         const blob = await res.blob();
@@ -222,6 +238,7 @@ export default function UploadPane({
                   id="mock-sketch-btn-3"
                   onClick={async (e) => {
                     e.stopPropagation();
+                    setError(null);
                     try {
                       const res = await fetch('/test_sketch_list.jpg');
                       const blob = await res.blob();

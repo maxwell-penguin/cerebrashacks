@@ -189,6 +189,7 @@ export default function App() {
             criticState={state.agents['vision_critic']}
             isRunning={isRunning}
             refineRegion={refineRegion}
+            errorMsg={state.errorMsg}
           />
         </div>
 

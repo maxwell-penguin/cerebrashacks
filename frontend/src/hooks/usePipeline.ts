@@ -236,7 +236,7 @@ export function usePipeline(wsUrl: string) {
                   message: msg.message,
                 };
               }
-              return { ...prev, agents };
+              return { ...prev, agents, phase: 'error', errorMsg: msg.message };
             }
 
             case 'pipeline_complete': {
@@ -265,7 +265,7 @@ export function usePipeline(wsUrl: string) {
                 finalCode,
                 vision,
                 issues: initialIssues,
-                errorMsg: msg.success ? '' : 'Pipeline finished with errors',
+                errorMsg: msg.success ? '' : (msg.message || 'Pipeline finished with errors'),
               };
             }
 
