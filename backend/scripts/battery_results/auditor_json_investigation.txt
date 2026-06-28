@@ -1,0 +1,47 @@
+# Auditor JSON Failure — Investigation (2026-06-26)
+
+## Repro session (AUDITOR_JSON_DEBUG=1, list sketch + --run-audit)
+
+- 6 attempts: 4 auditor successes, 1 code_forge 429, 1 auditor 429 (post-resilience optional-agent path worked — core code delivered).
+- No `*_parse_error.txt` or `*_repair_parse_error.txt` captured this session — failures were rate limits, not JSON.
+- `*_auditor_raw.txt` written on every auditor call (4 files). All four parse as valid JSON when tested with `json.loads()`.
+
+## Raw output analysis (successful runs)
+
+Captured auditor raw output consistently uses `patch` fields containing:
+- Inline JSX snippets with escaped quotes (`scope=\"col\"`)
+- Multi-line markdown code fences inside JSON strings (`\n```jsx\n...`)
+- Backticks and angle brackets from source code
+
+Example from `1782508638399_auditor_raw.txt` issue 3:
+```
+"patch": "Wrap the input ... Example:\n```jsx\n<label htmlFor=\"search\" ...>\n```"
+```
+
+These succeed only when the model properly escapes newlines as `\n`. When it emits **literal** newlines inside `"patch": "` (seen in prior `auditor_failure_repro.txt` line 193: `"patch": "` then truncated mid-string), `json.loads` raises `Unterminated string starting at: line 5 column 19` — matching historical `audit_a11y/list.txt` failure.
+
+## Repair path
+
+`extract_json_with_repair` was **not triggered** on successful runs (no `repair_attempted` files). On historical failures, repair receives the same malformed blob with embedded code/diffs; re-asking the same model to fix JSON while preserving patch content often fails again — especially for list sketch with longer code input.
+
+## Root cause (confirmed)
+
+The `patch` field asks the model to embed code snippets, unified-diff-style instructions, and JSX with unescaped `"`, newlines, and backticks inside JSON string values. This is the primary failure mode for auditor JSON parse errors. Not a repair-logic bug — schema design pushes the model into invalid JSON.
+
+## Fix applied
+
+Option (a): drop `patch`, add `line_hint`; describe fixes in `message` only. Patches were advisory-only (never auto-applied).
+
+## Post-schema-fix battery (audit only, 45s spacing)
+
+9/9 runs succeeded with auditor output + `pipeline_complete.success: True`.
+
+| Sketch | Run 1 | Run 2 | Run 3 | auditor latency |
+|--------|-------|-------|-------|-----------------|
+| login | OK (0.45–1.15s) | OK | OK | 1.15s / 0.45s / 0.80s |
+| dashboard | OK | OK | OK | 0.73s / 0.49s / 1.22s |
+| list | OK | OK | OK | 0.82s / 0.85s / 0.57s |
+
+No JSON parse errors, no `repair_attempted` files. List sketch (previously flaky) completed auditor on all 3 runs.
+
+Raw log: `audit_3x3_post_schema_fix_v2.txt`

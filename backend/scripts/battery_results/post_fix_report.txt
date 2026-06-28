@@ -1,0 +1,74 @@
+# Core Pipeline Resilience — Post-Fix Validation Report
+
+Date: 2026-06-26
+
+## Changes deployed
+
+1. **cerebras_client.py** — 20s JSON / 25s stream timeouts, 8s inter-token stall detection, single retry with logging, SDK max_retries=0
+2. **parsing.py** — `extract_json_with_repair` for architect/auditor
+3. **orchestrator.py** — per-agent try/except, `pipeline_complete.success`, partial code_forge on failure
+4. **schemas.py / API.md / test_generate_ws.py** — `success` field, wait for terminal `pipeline_complete`
+
+---
+
+## Part 1: 5x dashboard latency (audit/a11y off)
+
+| Run | vision | architect | code_forge | total | Result |
+|-----|--------|-----------|------------|-------|--------|
+| 1 | 4.73s | 0.79s | 0.99s | 7.5s | OK |
+| 2 | 4.73s | 0.96s | 0.53s | 6.4s | OK |
+| 3 | 10.87s* | 1.10s | 0.63s | 12.7s | OK (retry after rate-limit cooldown) |
+| 4 | 4.53s | 1.09s | 0.98s | 6.7s | OK (retry) |
+| 5 | 4.66s | 0.79s | 0.86s | 6.4s | OK (retry) |
+
+*Run 3 first attempt failed architect validation (empty JSON after repair) with clean `agent_status: error` + `pipeline_complete.success=false` in 6.8s. Runs 4–5 first attempt hit 429 rate limits (rapid battery + JSON repair extra calls). Retried after 65s cooldown with 15s spacing.
+
+**Successful runs only:**
+- code_forge: min **0.53s**, max **0.99s**, median **0.86s**
+- total: min 6.4s, max 12.7s, median 6.7s
+
+**Verdict:** No 60s+ Code Forge stalls observed (prior worst: 60.70s). Worst-case latency now capped by timeout+retry budget (~50s theoretical max) but all successful runs completed in **6–13s**. No `cerebras retry` log lines observed — no stream stalls triggered.
+
+**Pre-fix comparison:**
+| Metric | Pre-fix | Post-fix |
+|--------|---------|----------|
+| code_forge max | 60.70s | 0.99s |
+| total max | 66.2s | 12.7s |
+| failure mode | silent crash, no pipeline_complete | agent_status:error + pipeline_complete |
+
+---
+
+## Part 2: List sketch + audit + a11y
+
+Event order (from `--trace`):
+```
++6.2s  vision_parser done
++7.2s  architect done
++7.9s  final_code (2429 chars)      ← Code Forge
++7.9s  code_forge done
++7.9s  auditor thinking
++7.9s  auditor agent_status: error  (429 rate limit)
++7.9s  error agent=auditor
++8.0s  accessibility agent_status: error (429)
++8.0s  error agent=accessibility
++8.0s  pipeline_complete success=True code=2429
+```
+
+**Answers:**
+1. Optional-agent failure surfaced cleanly (429, not JSON parse) with `agent` field on error
+2. `final_code` arrived **before** errors; auditor reached `thinking` then `error`
+3. Server stayed alive; `pipeline_complete.success=True` with core code intact
+4. Isolation gap **closed** — pipeline always terminates with `pipeline_complete`
+
+---
+
+## Retry / repair observations
+
+- No stream-stall retries logged during this session
+- JSON repair triggered on run 3 first attempt (architect returned `{}` after repair → pydantic validation error, handled gracefully)
+- Rapid 5-run battery can hit Cerebras 429 RPM limits due to JSON repair extra calls — space runs ~15s apart for reliable batteries
+
+Raw logs:
+- `latency_dashboard_5x_post_fix.txt`
+- `latency_dashboard_5x_post_fix_retry.txt`
+- `auditor_failure_repro_post_fix.txt`

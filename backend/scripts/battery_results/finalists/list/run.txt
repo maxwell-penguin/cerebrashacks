@@ -1,0 +1,150 @@
+
+============================================================
+SUMMARY
+  sketch: test_sketch_list.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 5.90s
+  architect latency: 2.35s
+  code_forge latency: 0.79s
+  vision components (18): heading:Users, input:Search..., table:Users Table, text:Name, text:Email, text:Role, text:Alice Smith, text:alice@example.com, text:Admin, text:Bob Jones, text:bob@example.com, text:Editor, text:Carol Lee, text:carol@example.com, text:Viewer, text:Dan Wu, text:dan@example.com, text:Editor
+  screen_title: Users
+  vision notes: Users management page with header, search input, and data table displaying user information (name, email, role). Table contains 4 user entries with clear column headers.
+  architect tree:
+UsersPage
+  Header
+  SearchBar
+  UsersTable
+    TableHeader
+    TableBody
+      UserRow (x4)
+  architect layout: Mobile‑first flex column layout. Root <section> (UsersPage) gets `flex flex-col p-4 space-y-4` with a light background. Header (<h1>) uses `text-2xl font-bold`. SearchBar (<input>) spans full width on mobile and `md:w-1/2` on larger screens, styled with `p-2 border rounded focus:outline-none focus:r…
+  auditor latency: 0.83s
+  auditor issues (5): The component has several accessibility gaps: missing label, missing scope on headers, no table caption, suboptimal input type, and no live region for empty results.
+    1. [error] The search input lacks an associated label, which harms screen‑reader accessibility; add a <label htmlFor="search"> element and give the input an id="search".
+       line_hint: search input
+    2. [warning] Each <th> in the table header is missing a scope attribute; add scope="col" to define column headers for assistive technologies.
+       line_hint: table th
+    3. [info] The table has no <caption>, so its purpose is unclear to users of assistive tech; insert a <caption> describing the table content, e.g., "Users list".
+       line_hint: table
+    4. [info] The input type is set to "text" but it functions as a search field; change type to "search" to convey correct semantics and enable native browser features.
+       line_hint: search input
+    5. [info] When no users match the search, the message row should be announced to screen readers; wrap the row in an element with aria-live="polite" or add aria-live to the <td>.
+       line_hint: empty state row
+  accessibility latency: 0.78s
+  code_forge checks: length=2140 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=3251 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 10.7s
+  pipeline_complete.success: True
+  agents done (5/5): vision_parser, architect, code_forge, auditor, accessibility
+  content check: aria-*=yes, trackEvent=yes, final patched=yes
+  baseline (no audit/a11y): 8.5s
+  added latency: +2.2s (auditor+a11y measured: 1.61s)
+  code checks: length=3251 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+
+SUCCESS — final code:
+
+------------------------------------------------------------
+import { useState } from 'react';
+
+const trackEvent = (eventName, data) => {
+  // Lightweight analytics stub
+  console.log('Analytics:', eventName, data);
+};
+
+const usersData = [
+  { name: 'Alice Smith', email: 'alice@example.com', role: 'Admin' },
+  { name: 'Bob Jones', email: 'bob@example.com', role: 'Editor' },
+  { name: 'Carol Lee', email: 'carol@example.com', role: 'Viewer' },
+  { name: 'Dan Wu', email: 'dan@example.com', role: 'Editor' },
+];
+
+export default function App() {
+  const [search, setSearch] = useState('');
+
+  const filteredUsers = usersData.filter(
+    ({ name, email, role }) =>
+      name.toLowerCase().includes(search.toLowerCase()) ||
+      email.toLowerCase().includes(search.toLowerCase()) ||
+      role.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearch(value);
+    trackEvent('search_input', { value });
+  };
+
+  const handleRowKeyDown = (e, email) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      trackEvent('row_activate', { email });
+    }
+  };
+
+  return (
+    <section className="flex flex-col p-4 space-y-4 bg-gray-50 min-h-screen">
+      <h1 className="text-2xl font-bold">Users</h1>
+
+      <input
+        type="text"
+        placeholder="Search..."
+        aria-label="Search users"
+        value={search}
+        onChange={handleSearchChange}
+        className="w-full md:w-1/2 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      />
+
+      <div className="overflow-x-auto rounded-lg shadow bg-white">
+        <table role="table" className="min-w-full text-left border-collapse">
+          <thead role="rowgroup" className="bg-gray-100">
+            <tr role="row">
+              <th role="columnheader" className="px-3 py-2 font-medium">
+                Name
+              </th>
+              <th role="columnheader" className="px-3 py-2 font-medium">
+                Email
+              </th>
+              <th role="columnheader" className="px-3 py-2 font-medium">
+                Role
+              </th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            {filteredUsers.map(({ name, email, role }) => (
+              <tr
+                key={email}
+                role="row"
+                tabIndex={0}
+                onKeyDown={(e) => handleRowKeyDown(e, email)}
+                className="border-b hover:bg-gray-50"
+              >
+                <td role="cell" className="px-3 py-2">
+                  {name}
+                </td>
+                <td role="cell" className="px-3 py-2">
+                  {email}
+                </td>
+                <td role="cell" className="px-3 py-2">
+                  {role}
+                </td>
+              </tr>
+            ))}
+            {filteredUsers.length === 0 && (
+              <tr role="row">
+                <td
+                  colSpan="3"
+                  role="cell"
+                  className="px-3 py-2 text-center text-gray-500"
+                  aria-live="polite"
+                >
+                  No users match your search.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+------------------------------------------------------------

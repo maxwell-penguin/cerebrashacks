@@ -1,0 +1,106 @@
+=== RUN 3 (retry) ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 10.87s
+  architect latency: 1.10s
+  code_forge latency: 0.63s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Simple admin dashboard with left sidebar navigation and two stat cards in the main content area. Sidebar contains Home, Settings, and Reports links. Two metric cards display Revenue ($12,400) and User
+  architect tree:
+Dashboard
+  Header
+  Sidebar
+    NavItem (Home)
+    NavItem (Settings)
+    NavItem (Reports)
+  Main
+    StatCard (Revenue)
+      CardTitle
+      CardValue
+    StatCard (Users)
+      CardTitle
+      CardValue
+  architect layout: Mobile‑first layout using Tailwind:
+- Root <div className="flex flex-col min-h-screen">
+- Header: fixed top bar (h-16) with bg‑gray‑800 text‑white, flex items-center justify-between, px-4.
+- Sidebar: hidden on <md (mobile) and revealed as a vertical nav on <md via a slide‑in drawer or a simple <nav …
+  full pipeline: 12.7s
+  pipeline_complete.success: True
+  baseline (no audit/a11y): 6.1s
+  added latency: +6.6s (auditor+a11y measured: 0.00s)
+  code checks: length=3691 chars, has export default, has Tailwind classes, has JSX, has aria-*, no trackEvent
+=== RUN 4 (retry) ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.53s
+  architect latency: 1.09s
+  code_forge latency: 0.98s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Standard admin dashboard layout with vertical sidebar navigation on left containing Home, Settings, and Reports links. Main content area displays two stat cards (Revenue: $12,400 and Users: 1,284) arr
+  architect tree:
+Dashboard
+  Header
+    Heading
+  Sidebar
+    NavItem (Home)
+    NavItem (Settings)
+    NavItem (Reports)
+  Main
+    StatCard (Revenue)
+      CardTitle
+      CardValue
+    StatCard (Users)
+      CardTitle
+      CardValue
+  architect layout: Mobile‑first using Tailwind:
+- Root container: `flex min-h-screen` to place sidebar and main side‑by‑side on larger screens; on mobile the sidebar becomes a top drawer (use `flex-col` with hidden sidebar via responsive classes if needed).
+- Sidebar: `w-1/5 md:w-64 bg-gray-800 text-white p-4` for fix…
+  full pipeline: 6.7s
+  pipeline_complete.success: True
+  baseline (no audit/a11y): 6.1s
+  added latency: +0.6s (auditor+a11y measured: 0.00s)
+  code checks: length=2543 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+=== RUN 5 (retry) ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.66s
+  architect latency: 0.79s
+  code_forge latency: 0.86s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Dashboard layout with left sidebar navigation containing Home, Settings, and Reports links. Header with Dashboard title spans top. Two stat cards in main content area displaying Revenue ($12,400) and 
+  architect tree:
+Dashboard
+  ├─ Header
+  │   └─ Heading (Dashboard)
+  ├─ Sidebar
+  │   ├─ NavItem (Home)
+  │   ├─ NavItem (Settings)
+  │   └─ NavItem (Reports)
+  └─ Main
+      ├─ StatCard (Revenue)
+      │   ├─ CardTitle (Revenue)
+      │   └─ CardValue ($12,400)
+      └─ StatCard (Users)
+          ├─ CardTitle (Users)
+          └─ CardValue (1,284)
+  architect layout: Mobile‑first Tailwind strategy:
+- Root container: `flex flex-col min-h-screen`.
+- Header: `h-16 flex items-center px-4 bg-gray-800 text-white` fixed at top.
+- Sidebar: hidden on <md, shown as `md:w-64 md:flex md:flex-col md:bg-gray-900 md:text-white` with `md:fixed md:top-16 md:h-[calc(100vh-4rem)]`…
+  full pipeline: 6.4s
+  pipeline_complete.success: True
+  baseline (no audit/a11y): 6.1s
+  added latency: +0.3s (auditor+a11y measured: 0.00s)
+  code checks: length=2294 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent

@@ -1,0 +1,308 @@
+=== Full pipeline 3x2 (env defaults, no WS flags) ===
+Started: 2026-06-26T21:44:16Z
+Finished: 2026-06-26T21:48:52Z
+
+## Report (6/6 PASS)
+
+| Sketch    | Run | Total | vision_parser | architect | code_forge | auditor | accessibility | Agents | aria+trackEvent | final patched | vs audit-only ref |
+|-----------|-----|-------|---------------|-----------|------------|---------|---------------|--------|-----------------|---------------|-------------------|
+| login     | 1   | 7.7s  | 2.93s         | 1.11s     | 1.12s      | 0.70s   | 0.70s         | 5/5    | yes             | yes           | ref 4.3–6.0s (+1.7–3.4s) |
+| login     | 2   | 5.4s  | 2.25s         | 1.00s     | 0.52s      | 0.91s   | 0.66s         | 5/5    | yes             | yes           | within ref |
+| dashboard | 1   | 9.4s  | 5.33s         | 1.03s     | 0.66s      | 0.51s   | 0.87s         | 5/5    | yes             | yes           | ref 6.7–8.2s (+1.2–2.7s) |
+| dashboard | 2   | 8.2s  | 4.92s         | 0.96s     | 0.56s      | 0.76s   | 0.97s         | 5/5    | yes             | yes           | within ref |
+| list      | 1   | 9.7s  | 5.54s         | 1.46s     | 1.04s      | 0.94s   | 0.64s         | 5/5    | yes             | yes           | ref 8.6–8.8s (+0.9–1.1s) |
+| list      | 2   | 9.6s  | 5.76s         | 1.22s     | 0.73s      | 1.03s   | 0.82s         | 5/5    | yes             | yes           | within ref |
+
+Pass criteria: pipeline_complete.success=true, 5 agents done, no agent errors, aria-* + trackEvent in final code, final != code_forge.
+Regression: no run exceeded audit-only baseline by >4s. login run1 (+3.4s vs 4.3s low ref) is elevated but within +4s flag threshold.
+Env: RUN_AUDIT_DEFAULT=true, RUN_ACCESSIBILITY_DEFAULT=true (keys omitted from WS payload).
+
+--- login run1 ---
+
+============================================================
+SUMMARY
+  sketch: test_sketch.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 2.93s
+  architect latency: 1.11s
+  code_forge latency: 1.12s
+  vision components (4): heading:Login, input:Email, input:Password, button:Sign In
+  screen_title: Login Form
+  vision notes: Standard login form with header, two input fields (email and password), and centered sign-in button. Vertical spacing is consistent. No additional UI elements like forgot password link or sign-up opti
+  architect tree:
+App
+  LoginForm
+    Header
+    EmailInput
+    PasswordInput
+    SignInButton
+  architect layout: Mobile‑first layout using Tailwind CSS. The root <main> uses flexbox to center the form vertically and horizontally (min‑h-screen, items-center, justify-center, bg-gray-50). The form container (<section>) is a responsive card: w-11/12 max-w-md, padded, white background, rounded corners, and subtle s…
+  auditor latency: 0.70s
+  auditor issues (1): One potential import issue detected.
+    1. [warning] The file does not import React; if the project is not using the new JSX transform, add import React from 'react' to avoid runtime errors.
+       line_hint: top of file
+  accessibility latency: 0.70s
+  code_forge checks: length=2095 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=2637 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 7.7s
+  pipeline_complete.success: True
+  agents done (5/5): vision_parser, architect, code_forge, auditor, accessibility
+  content check: aria-*=yes, trackEvent=yes, final patched=yes
+  baseline (no audit/a11y): 4.5s
+  added latency: +3.2s (auditor+a11y measured: 1.40s)
+  code checks: length=2637 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+
+--- login run2 ---
+
+============================================================
+SUMMARY
+  sketch: test_sketch.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 2.25s
+  architect latency: 1.00s
+  code_forge latency: 0.52s
+  vision components (4): heading:Login, input:Email, input:Password, button:Sign In
+  screen_title: Login Form
+  vision notes: Standard login form with centered Sign In button. Email and Password inputs have placeholder text. All elements use simple box-style borders typical of hand-drawn sketches.
+  architect tree:
+LoginForm
+  Header
+  Form
+    EmailInput
+    PasswordInput
+    SubmitButton
+  architect layout: Mobile‑first layout using Tailwind:
+- Outer <section> fills the viewport (min-h-screen) with flex centering (flex items-center justify-center) and a light gray background.
+- Inner container (bg-white, rounded, shadow) is limited to max-w-sm and padded.
+- Use a vertical flex column (flex flex-col) wi…
+  auditor latency: 0.91s
+  auditor issues (5): The component is functionally sound but needs proper labeling, ids, autocomplete, and optional ARIA enhancements for accessibility.
+    1. [error] Each input lacks an associated label; add a <label> with htmlFor matching the input's id to provide accessible names
+       line_hint: email input
+    2. [error] Inputs are missing id attributes required for label association; assign unique ids and reference them from the labels
+       line_hint: password input
+    3. [warning] Add autoComplete attributes (email for the email field and current-password for the password field) to enable browser autofill
+       line_hint: email input
+    4. [info] Consider adding aria-label or aria-describedby if visual labels are not used, to ensure screen readers announce the fields correctly
+       line_hint: password input
+    5. [info] The outer <section> could include a role or aria-label if it serves as a distinct landmark region, improving navigation for assistive technologies
+       line_hint: section wrapper
+  accessibility latency: 0.66s
+  code_forge checks: length=1465 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=2492 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 5.4s
+  pipeline_complete.success: True
+  agents done (5/5): vision_parser, architect, code_forge, auditor, accessibility
+  content check: aria-*=yes, trackEvent=yes, final patched=yes
+  baseline (no audit/a11y): 4.5s
+  added latency: +0.9s (auditor+a11y measured: 1.56s)
+  code checks: length=2492 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+
+--- dashboard run1 ---
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 5.33s
+  architect latency: 1.03s
+  code_forge latency: 0.66s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Dashboard layout with left sidebar navigation containing three menu items (Home, Settings, Reports). Header displays 'Dashboard' title. Main content area shows two metric cards side-by-side: Revenue (
+  architect tree:
+App
+  DashboardPage
+    Header
+    Sidebar
+      NavItem (Home)
+      NavItem (Settings)
+      NavItem (Reports)
+    MainContent
+      StatCard (Revenue)
+      StatCard (Users)
+  architect layout: Mobile‑first Tailwind:
+- Root: `flex min-h-screen` to place Sidebar and main column.
+- Sidebar: `bg-gray-100 w-64 flex-shrink-0 p-4` (fixed width on larger screens, collapses to top nav on <md if needed).
+- Header: `bg-gray-800 text-white p-4` spanning full width of main column.
+- MainContent: `flex…
+  auditor latency: 0.51s
+  auditor issues (5): The component has minor accessibility gaps and could improve navigation semantics.
+    1. [warning] List items are used as clickable elements but are not focusable or announced as buttons; replace <li> with <button> or add role="button" and tabIndex="0" for keyboard accessibility
+       line_hint: li clickable
+    2. [info] The <aside> element serves as navigation but lacks an accessible label; add aria-label="Main menu" or wrap the list in a <nav> element
+       line_hint: aside navigation
+    3. [info] The active navigation item is indicated only by visual styling; add aria-current="page" to the active list item for screen reader users
+       line_hint: active li
+    4. [warning] The header contains only a heading without a landmark; consider adding a <nav> inside the header for future navigation links to improve structure
+       line_hint: header h1
+    5. [info] StatCard component is defined after its usage but within the same file, which is acceptable; however, exporting it could improve reusability if needed elsewhere
+       line_hint: StatCard definition
+  accessibility latency: 0.87s
+  code_forge checks: length=1473 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=2125 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 9.4s
+  pipeline_complete.success: True
+  agents done (5/5): vision_parser, architect, code_forge, auditor, accessibility
+  content check: aria-*=yes, trackEvent=yes, final patched=yes
+  baseline (no audit/a11y): 6.1s
+  added latency: +3.3s (auditor+a11y measured: 1.38s)
+  code checks: length=2125 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+
+--- dashboard run2 ---
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.92s
+  architect latency: 0.96s
+  code_forge latency: 0.56s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Dashboard layout with left sidebar containing three navigation items (Home, Settings, Reports). Main content area displays two stat cards side-by-side showing Revenue ($12,400) and Users (1,284). Card
+  architect tree:
+Dashboard
+  Header
+  Sidebar
+    NavItem (Home)
+    NavItem (Settings)
+    NavItem (Reports)
+  Main
+    StatCards
+      StatCard (Revenue)
+        CardTitle
+        CardValue
+      StatCard (Users)
+        CardTitle
+        CardValue
+  architect layout: Mobile‑first Tailwind:
+- Root <div className="min-h-screen flex flex-col">.
+- Header: fixed height (h-12), bg‑gray‑800, text‑white, flex items‑center px-4.
+- Content area: flex-1 flex flex-col md:flex-row.
+  • Sidebar: w-full md:w-1/5 bg‑gray‑100 p-4, flex flex-col space-y-2.
+    – NavItem: py-2 px-…
+  auditor latency: 0.76s
+  auditor issues (5): The code is functionally sound but needs accessibility enhancements for navigation items and landmark roles.
+    1. [warning] Clickable <li> elements lack keyboard accessibility; wrap the label in a <button> or add role="button" and tabIndex="0" to make them focusable and operable via keyboard.
+       line_hint: Sidebar li
+    2. [info] The active navigation item should have an ARIA attribute such as aria-current="page" to convey its state to assistive technologies.
+       line_hint: Sidebar li
+    3. [info] The <nav> element is missing an accessible label; add aria-label or a visually hidden heading to describe its purpose (e.g., aria-label="Main navigation").
+       line_hint: Sidebar nav
+    4. [warning] StatCard uses a <section> without a landmark role; consider using <article> or adding role="region" with an aria-label to improve screen‑reader navigation.
+       line_hint: StatCard section
+    5. [info] The main layout div uses flex-col on both mobile and desktop; ensure the order of Sidebar and Main remains logical for screen readers (Sidebar should appear before Main in the DOM, which it does). No action needed unless visual order changes.
+       line_hint: App layout div
+  accessibility latency: 0.97s
+  code_forge checks: length=1722 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=2552 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 8.2s
+  pipeline_complete.success: True
+  agents done (5/5): vision_parser, architect, code_forge, auditor, accessibility
+  content check: aria-*=yes, trackEvent=yes, final patched=yes
+  baseline (no audit/a11y): 6.1s
+  added latency: +2.1s (auditor+a11y measured: 1.73s)
+  code checks: length=2552 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+
+--- list run1 ---
+
+============================================================
+SUMMARY
+  sketch: test_sketch_list.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 5.54s
+  architect latency: 1.46s
+  code_forge latency: 1.04s
+  vision components (18): heading:Users, input:Search..., table:Users table, text:Name, text:Email, text:Role, text:Alice Smith, text:alice@example.com, text:Admin, text:Bob Jones, text:bob@example.com, text:Editor, text:Carol Lee, text:carol@example.com, text:Viewer, text:Dan Wu, text:dan@example.com, text:Editor
+  screen_title: Users
+  vision notes: Users management page with a search input field and a table displaying user information including Name, Email, and Role columns. Four user entries are shown: Alice Smith (Admin), Bob Jones (Editor), C
+  architect tree:
+App
+  UsersPage
+    Header
+    SearchBar
+    UsersTable
+      TableHeader
+      TableBody
+        UserRow (x4)
+  architect layout: Mobile‑first Tailwind layout:
+- Root container: `min-h-screen bg-gray-50 flex items-center justify-center`
+- Page wrapper (`UsersPage`): `container mx-auto p-4 flex flex-col gap-4`
+- Header (`h1`): `text-2xl font-bold text-gray-800`
+- SearchBar: `w-full p-2 border rounded focus:outline-none focus:ri…
+  auditor latency: 0.94s
+  auditor issues (5): The component works but needs key improvements, table caption, header scopes, input labeling, and better landmark structure for accessibility.
+    1. [warning] UserRow uses the array index as key; replace with a stable identifier such as the user's email to prevent rendering bugs when the list changes.
+       line_hint: UserRow key
+    2. [warning] The table does not include a <caption> element; add a concise caption describing the table's purpose to aid screen‑reader users.
+       line_hint: table
+    3. [info] Each <th> header should have a scope attribute (e.g., scope='col') so assistive technologies can correctly associate column headings.
+       line_hint: TableHeader th
+    4. [warning] The search input lacks an associated label; provide a visible <label> element or an aria-label attribute to meet accessibility guidelines.
+       line_hint: SearchBar input
+    5. [info] The outer <section> could be placed inside a <main> landmark to improve page outline for assistive technologies.
+       line_hint: section
+  accessibility latency: 0.64s
+  code_forge checks: length=2409 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=3448 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 9.7s
+  pipeline_complete.success: True
+  agents done (5/5): vision_parser, architect, code_forge, auditor, accessibility
+  content check: aria-*=yes, trackEvent=yes, final patched=yes
+  baseline (no audit/a11y): 8.5s
+  added latency: +1.2s (auditor+a11y measured: 1.58s)
+  code checks: length=3448 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+
+--- list run2 ---
+
+============================================================
+SUMMARY
+  sketch: test_sketch_list.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 5.76s
+  architect latency: 1.22s
+  code_forge latency: 0.73s
+  vision components (18): heading:Users, input:Search..., table:Users Table, text:Name, text:Email, text:Role, text:Alice Smith, text:alice@example.com, text:Admin, text:Bob Jones, text:bob@example.com, text:Editor, text:Carol Lee, text:carol@example.com, text:Viewer, text:Dan Wu, text:dan@example.com, text:Editor
+  screen_title: Users List Page
+  vision notes: Users list page with search bar positioned in the top-right. Responsive table with 4 rows of user data showing Name, Email, and Role columns. All elements use clear typography with muted colors for se
+  architect tree:
+UsersListPage
+  Header
+  SearchBar
+  UsersTable
+    TableHeader
+      Th (Name)
+      Th (Email)
+      Th (Role)
+    TableBody
+      TableRow (Alice Smith)
+      TableRow (Bob Jones)
+      TableRow (Carol Lee)
+      TableRow (Dan Wu)
+  architect layout: Mobile‑first layout using Tailwind CSS:
+- Root <main> with `container mx-auto p-4` for centered content and padding.
+- Header section as a flex container `flex justify-between items-center mb-4` containing the page title and the search input.
+- SearchBar styled with `border rounded px-2 py-1 focus:o…
+  auditor latency: 1.03s
+  auditor issues (5): The component works but has several accessibility gaps and a minor JSX best‑practice issue.
+    1. [warning] Search input is not associated with a label, which harms screen‑reader users. Add a label element with htmlFor='search' and give the input id='search'.
+       line_hint: search input
+    2. [warning] Each table header cell (<th>) lacks a scope attribute, so column headers are not announced correctly. Add scope='col' to every <th>.
+       line_hint: table header th
+    3. [info] The table has no <caption>, making its purpose unclear to assistive technology. Insert a <caption>Users list</caption> as the first child of the <table>.
+       line_hint: table element
+    4. [warning] colSpan is supplied as a string; JSX expects a numeric value. Change colSpan='3' to colSpan={3}.
+       line_hint: empty state td
+    5. [info] The filtered array is recomputed on every render; consider memoizing it with useMemo to improve performance for larger data sets.
+       line_hint: filtered definition
+  accessibility latency: 0.82s
+  code_forge checks: length=2505 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=3591 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 9.6s
+  pipeline_complete.success: True
+  agents done (5/5): vision_parser, architect, code_forge, auditor, accessibility
+  content check: aria-*=yes, trackEvent=yes, final patched=yes
+  baseline (no audit/a11y): 8.5s
+  added latency: +1.1s (auditor+a11y measured: 1.84s)
+  code checks: length=3591 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent

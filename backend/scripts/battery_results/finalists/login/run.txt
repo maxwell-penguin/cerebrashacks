@@ -1,0 +1,126 @@
+
+============================================================
+SUMMARY
+  sketch: test_sketch.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 2.49s
+  architect latency: 0.99s
+  code_forge latency: 0.51s
+  vision components (4): heading:Login, input:Email, input:Password, button:Sign In
+  screen_title: Login
+  vision notes: Simple login form with heading, two input fields (email and password), and a centered Sign In button. Form elements are stacked vertically with consistent spacing.
+  architect tree:
+App
+  LoginPage
+    Header
+    LoginForm
+      EmailInput
+      PasswordInput
+      SubmitButton
+  architect layout: Mobile‑first layout using Tailwind:
+- Root <main> is a flex container: `flex items-center justify-center min-h-screen bg-gray-50`.
+- Content wrapper (`section`) is a column with `w-full max-w-sm p-6 bg-white rounded-lg shadow`.
+- Stack elements vertically with `flex flex-col space-y-4` inside the fo…
+  auditor latency: 0.68s
+  auditor issues (3): The component is functional but needs minor accessibility improvements and optional React import for older setups.
+    1. [warning] Label elements wrap inputs but lack explicit htmlFor/id association; add unique id attributes to each input and set the corresponding htmlFor on the label for better accessibility.
+       line_hint: label Email
+    2. [info] React is not imported; while the new JSX transform removes the need for an explicit import in React 17+, add import React from 'react' if the project targets older React versions.
+       line_hint: top of file
+    3. [warning] Inputs rely only on placeholder text for visible labeling; provide a visible label or an aria-label attribute to ensure screen readers convey the field purpose.
+       line_hint: input email
+  accessibility latency: 0.84s
+  code_forge checks: length=1695 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=2582 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 5.7s
+  pipeline_complete.success: True
+  agents done (5/5): vision_parser, architect, code_forge, auditor, accessibility
+  content check: aria-*=yes, trackEvent=yes, final patched=yes
+  baseline (no audit/a11y): 4.5s
+  added latency: +1.2s (auditor+a11y measured: 1.52s)
+  code checks: length=2582 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+
+SUCCESS — final code:
+
+------------------------------------------------------------
+import { useState } from 'react';
+
+const trackEvent = (eventName, data) => {
+  // Lightweight analytics stub
+  console.log('Analytics Event:', eventName, data);
+};
+
+function App() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    trackEvent('login_submit', { email });
+    alert(`Email: ${email}\nPassword: ${password}`);
+  };
+
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setEmail(value);
+    trackEvent('email_change', { value });
+  };
+
+  const handlePasswordChange = (e) => {
+    const value = e.target.value;
+    setPassword(value);
+    trackEvent('password_change', { value });
+  };
+
+  return (
+    <main className="flex items-center justify-center min-h-screen bg-gray-50" role="main">
+      <section className="w-full max-w-sm p-6 bg-white rounded-lg shadow" role="region" aria-labelledby="login-heading">
+        <h1 id="login-heading" className="text-2xl font-bold text-center mb-4">Login</h1>
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col space-y-4"
+          role="form"
+          aria-label="Login form"
+        >
+          <label className="block" htmlFor="email-input">
+            <span className="sr-only">Email</span>
+            <input
+              id="email-input"
+              type="email"
+              placeholder="Email"
+              aria-label="Email address"
+              value={email}
+              onChange={handleEmailChange}
+              className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </label>
+          <label className="block" htmlFor="password-input">
+            <span className="sr-only">Password</span>
+            <input
+              id="password-input"
+              type="password"
+              placeholder="Password"
+              aria-label="Password"
+              value={password}
+              onChange={handlePasswordChange}
+              className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </label>
+          <button
+            type="submit"
+            className="w-full md:w-1/2 mx-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded"
+            aria-label="Sign in"
+            onClick={() => trackEvent('sign_in_click', { email })}
+          >
+            Sign In
+          </button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+export default App;
+------------------------------------------------------------

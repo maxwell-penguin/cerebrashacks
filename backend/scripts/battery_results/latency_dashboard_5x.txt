@@ -1,0 +1,139 @@
+=== RUN 1 ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.94s
+  architect latency: 0.85s
+  code_forge latency: 0.91s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Dashboard with left sidebar navigation (Home, Settings, Reports) and header. Main content area contains two metric cards displaying Revenue ($12,400) and Users (1,284). Layout uses a typical admin das
+  architect tree:
+DashboardApp
+  Header
+  Sidebar
+    NavItem
+    NavItem
+    NavItem
+  Main
+    Card
+    Card
+  architect layout: Mobile‑first Tailwind: root container is a flex column (min‑h-screen). Sidebar is hidden on small screens (hidden md:block) and takes 20% width on md+. Main area flex‑1 with column layout. Header sits at top of main area, full width, with padding and subtle shadow. Content uses a grid that collapses…
+  full pipeline: 6.8s
+  baseline (no audit/a11y): 6.1s
+  added latency: +0.7s (auditor+a11y measured: 0.00s)
+  code checks: length=2839 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+=== RUN 2 ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.36s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Left sidebar navigation with three menu items (Home, Settings, Reports). Two metric cards displayed in main content area showing Revenue ($12,400) and Users (1,284). Simple clean layout with ample whi
+  full pipeline: 5.4s
+  baseline (no audit/a11y): 6.1s
+  added latency: -0.7s (auditor+a11y measured: 0.00s)
+  FAILED: [unknown] Unterminated string starting at: line 5 column 19 (char 1270)
+=== RUN 3 ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.52s
+  architect latency: 0.90s
+  code_forge latency: 0.52s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Admin dashboard with left sidebar navigation containing Home, Settings, and Reports links. Top header shows 'Dashboard' title. Two stat cards displayed in grid layout showing Revenue ($12,400) and Use
+  architect tree:
+DashboardPage
+  Header
+    Heading
+  Sidebar
+    NavItem (Home)
+    NavItem (Settings)
+    NavItem (Reports)
+  Main
+    StatCards
+      StatCard (Revenue)
+        CardTitle
+        CardValue
+      StatCard (Users)
+        CardTitle
+        CardValue
+  architect layout: Mobile‑first layout using Tailwind:
+- Root <div className="flex flex-col min-h-screen bg-gray-50">
+- Header: fixed top bar (h-16) with flex items-center, bg-white, shadow, px-4.
+- Sidebar: hidden on mobile (md:block) with width 1/4 of screen, bg-gray-800, text-white, py-6, px-2. On larger screens it…
+  full pipeline: 6.0s
+  baseline (no audit/a11y): 6.1s
+  added latency: -0.1s (auditor+a11y measured: 0.00s)
+  code checks: length=1873 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+=== RUN 4 ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.84s
+  architect latency: 1.25s
+  code_forge latency: 0.53s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Left sidebar navigation with three menu items (Home, Settings, Reports). Top header with 'Dashboard' title. Main content area displays two metric cards side-by-side: Revenue ($12,400) and Users (1,284
+  architect tree:
+Dashboard
+  Header (Heading)
+  Sidebar (Nav)
+    NavItem (Home)
+    NavItem (Settings)
+    NavItem (Reports)
+  Content
+    Card (Revenue)
+      CardTitle
+      CardValue
+    Card (Users)
+      CardTitle
+      CardValue
+  architect layout: Use a mobile‑first flex layout. The root <div className="flex flex-col min-h-screen bg-gray-100"> contains Header at the top (h-16, w-full, bg-white shadow). Below, a wrapper <div className="flex flex-1"> holds Sidebar and Main. Sidebar is hidden on small screens (hidden md:block) and given a fixed …
+  full pipeline: 6.7s
+  baseline (no audit/a11y): 6.1s
+  added latency: +0.6s (auditor+a11y measured: 0.00s)
+  code checks: length=1692 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+=== RUN 5 ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.55s
+  architect latency: 0.87s
+  code_forge latency: 60.70s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Classic admin dashboard layout with left sidebar navigation and two stat cards displayed horizontally. Header spans full width at top. Main content area has ample white space below cards suggesting po
+  architect tree:
+Dashboard
+  Header
+  Sidebar
+    NavItem (Home)
+    NavItem (Settings)
+    NavItem (Reports)
+  Main
+    StatCard (Revenue)
+    StatCard (Users)
+  architect layout: Mobile‑first layout using Tailwind:
+- Root container: `flex flex-col min-h-screen`.
+- Header spans full width at top: `bg-gray-800 text-white p-4`.
+- Sidebar becomes a full‑width top navigation on small screens (`w-full`) and switches to a vertical left column on md+ (`md:w-1/5`).
+- Main content are…
+  full pipeline: 66.2s
+  baseline (no audit/a11y): 6.1s
+  added latency: +60.1s (auditor+a11y measured: 0.00s)
+  code checks: length=1868 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent

@@ -1,0 +1,54 @@
+=== login RUN 1 ===
+  auditor latency: 0.51s
+  auditor issues (3): The component needs proper labels, autocomplete, and name attributes for accessibility and form handling.
+  full pipeline: 5.9s
+  pipeline_complete.success: True
+
+=== login RUN 2 ===
+  full pipeline: 6.4s
+  pipeline_complete.success: True
+  agent_status errors: auditor: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  partial failure (core OK): [auditor] Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+
+=== login RUN 3 ===
+  full pipeline: 5.5s
+  pipeline_complete.success: False
+  agent_status errors: code_forge: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  FAILED: [code_forge] Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+
+=== dashboard RUN 1 ===
+  full pipeline: 7.8s
+  pipeline_complete.success: False
+  agent_status errors: architect: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  FAILED: [architect] Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+
+=== dashboard RUN 2 ===
+  full pipeline: 7.8s
+  pipeline_complete.success: False
+  agent_status errors: code_forge: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  FAILED: [code_forge] Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+
+=== dashboard RUN 3 ===
+  full pipeline: 7.9s
+  pipeline_complete.success: False
+  agent_status errors: code_forge: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  FAILED: [code_forge] Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+
+=== list RUN 1 ===
+  full pipeline: 9.9s
+  pipeline_complete.success: True
+  agent_status errors: auditor: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  partial failure (core OK): [auditor] Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+
+=== list RUN 2 ===
+  full pipeline: 10.5s
+  pipeline_complete.success: True
+  agent_status errors: auditor: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  partial failure (core OK): [auditor] Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+
+=== list RUN 3 ===
+  full pipeline: 10.0s
+  pipeline_complete.success: True
+  agent_status errors: auditor: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  partial failure (core OK): [auditor] Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+

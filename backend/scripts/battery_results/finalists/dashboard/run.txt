@@ -1,0 +1,152 @@
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.80s
+  architect latency: 0.81s
+  code_forge latency: 0.84s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Dashboard layout with left sidebar navigation (Home, Settings, Reports) and header. Two metric cards displayed in the main area showing Revenue ($12,400) and Users (1,284). Large empty space below sug
+  architect tree:
+Dashboard
+  Header
+    Heading
+  Sidebar
+    NavItem (Home)
+    NavItem (Settings)
+    NavItem (Reports)
+  Main
+    StatCard (Revenue)
+    StatCard (Users)
+  architect layout: Mobile‑first Tailwind:
+- Root <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
+  - <Header className="h-16 bg-white shadow flex items-center px-4">
+    - <h1 className="text-xl font-semibold">Dashboard</h1>
+  - <div className="flex flex-1 overflow-hidden">
+    - <Sidebar classNa…
+  auditor latency: 1.18s
+  auditor issues (3): Accessibility gaps in navigation links and missing ARIA attributes were identified
+    1. [warning] NavItem uses an <a> with href="#"; replace it with a <button> element or provide a real URL to improve accessibility and avoid unnecessary link behavior
+       line_hint: NavItem component
+    2. [warning] Active navigation items do not have an aria-current attribute; add aria-current="page" when isActive to convey the current page to assistive technologies
+       line_hint: NavItem component
+    3. [info] The <nav> element in Sidebar lacks an accessible label; add aria-label="Main navigation" (or a more specific label) to help screen readers identify the navigation region
+       line_hint: Sidebar nav
+  accessibility latency: 0.54s
+  code_forge checks: length=1951 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=2483 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 8.2s
+  pipeline_complete.success: True
+  agents done (5/5): vision_parser, architect, code_forge, auditor, accessibility
+  content check: aria-*=yes, trackEvent=yes, final patched=yes
+  baseline (no audit/a11y): 6.1s
+  added latency: +2.1s (auditor+a11y measured: 1.72s)
+  code checks: length=2483 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+
+SUCCESS — final code:
+
+------------------------------------------------------------
+import React, { useState } from 'react';
+
+// Simple analytics stub
+function trackEvent(eventName, payload) {
+  console.log('Analytics:', eventName, payload);
+}
+
+export default function App() {
+  const [activeNav, setActiveNav] = useState('Home');
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar activeNav={activeNav} setActiveNav={setActiveNav} />
+        <Main />
+      </div>
+    </div>
+  );
+}
+
+function Header() {
+  return (
+    <header
+      className="h-16 bg-white shadow flex items-center px-4"
+      role="banner"
+    >
+      <h1 className="text-xl font-semibold">Dashboard</h1>
+    </header>
+  );
+}
+
+function Sidebar({ activeNav, setActiveNav }) {
+  const navItems = ['Home', 'Settings', 'Reports'];
+  return (
+    <aside
+      className="w-64 bg-white border-r hidden md:block"
+      role="complementary"
+      aria-label="Sidebar navigation"
+    >
+      <nav
+        className="flex flex-col space-y-2 p-4"
+        role="navigation"
+        aria-label="Main navigation"
+      >
+        {navItems.map((item) => (
+          <NavItem
+            key={item}
+            label={item}
+            isActive={activeNav === item}
+            onClick={() => {
+              setActiveNav(item);
+              trackEvent('nav_click', { label: item });
+            }}
+          />
+        ))}
+      </nav>
+    </aside>
+  );
+}
+
+function NavItem({ label, isActive, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left w-full cursor-pointer transition-colors ${
+        isActive
+          ? 'text-blue-600 font-medium'
+          : 'text-gray-600 hover:text-gray-900'
+      }`}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      {label}
+    </button>
+  );
+}
+
+function Main() {
+  return (
+    <main className="flex-1 p-4 overflow-auto" role="main" aria-label="Main content">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <StatCard title="Revenue" value="$12,400" />
+        <StatCard title="Users" value="1,284" />
+      </div>
+    </main>
+  );
+}
+
+function StatCard({ title, value }) {
+  return (
+    <section
+      className="bg-white rounded-lg shadow p-6"
+      role="region"
+      aria-label={title}
+    >
+      <h2 className="text-sm font-medium text-gray-500">{title}</h2>
+      <p className="mt-2 text-2xl font-semibold text-gray-800">{value}</p>
+    </section>
+  );
+}
+------------------------------------------------------------

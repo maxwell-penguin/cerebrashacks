@@ -1,0 +1,125 @@
+=== RUN 1 ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.73s
+  architect latency: 0.79s
+  code_forge latency: 0.99s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Left sidebar navigation with three menu items (Home, Settings, Reports). Header contains 'Dashboard' title. Main content area displays two stat cards side-by-side: Revenue ($12,400) and Users (1,284).
+  architect tree:
+DashboardPage
+  Header
+  Sidebar
+  Main
+    StatCard (Revenue)
+    StatCard (Users)
+  architect layout: Mobile‑first Tailwind:
+- Root <div className="flex flex-col min-h-screen">.
+- Header: fixed top bar, full width, h-16, bg-gray-800, text-white, flex items-center px-4.
+- Sidebar: hidden on <md (mobile) using hidden md:block, width 64 (w-64), bg-gray-900, text-gray-100, flex flex-col, pt-4. On larger…
+  full pipeline: 7.5s
+  pipeline_complete.success: True
+  baseline (no audit/a11y): 6.1s
+  added latency: +1.4s (auditor+a11y measured: 0.00s)
+  code checks: length=1874 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+=== RUN 2 ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.73s
+  architect latency: 0.96s
+  code_forge latency: 0.53s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Left sidebar navigation with three menu items. Header with 'Dashboard' title. Two stat cards displayed horizontally in the main content area showing Revenue ($12,400) and Users (1,284). Clean layout w
+  architect tree:
+DashboardPage
+  Header
+  Main
+    Sidebar
+      NavItem
+      NavItem
+      NavItem
+    Content
+      StatCard
+      StatCard
+  architect layout: Mobile‑first Tailwind:
+- Root container: `flex flex-col min-h-screen`.
+- Header: fixed height, full width, `bg-gray-800 text-white p-4`.
+- Main area: `flex-1 flex flex-col md:flex-row`.
+- Sidebar: hidden on mobile (`hidden md:block`), width `w-64`, background `bg-gray-100`, padding `p-4`.
+- Content …
+  full pipeline: 6.4s
+  pipeline_complete.success: True
+  baseline (no audit/a11y): 6.1s
+  added latency: +0.3s (auditor+a11y measured: 0.00s)
+  code checks: length=1693 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+=== RUN 3 ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 5.31s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Left sidebar contains navigation menu items. Header displays 'Dashboard' title. Two stat cards displayed horizontally in the main content area showing Revenue ($12,400) and Users (1,284). Layout uses 
+  full pipeline: 6.8s
+  pipeline_complete.success: False
+  error preceded pipeline_complete: yes
+  agent_status errors: architect: 2 validation errors for ArchitectResult
+component_tree
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.13/v/missing
+layout_plan
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.13/v/missing
+  baseline (no audit/a11y): 6.1s
+  added latency: +0.7s (auditor+a11y measured: 0.00s)
+  FAILED: [architect] 2 validation errors for ArchitectResult
+component_tree
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.13/v/missing
+layout_plan
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.13/v/missing
+=== RUN 4 ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.76s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Left sidebar navigation with three menu items (Home, Settings, Reports). Main content area displays two stat cards showing Revenue ($12,400) and Users (1,284). Dashboard header spans the full width ab
+  full pipeline: 6.4s
+  pipeline_complete.success: False
+  error preceded pipeline_complete: yes
+  agent_status errors: architect: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  baseline (no audit/a11y): 6.1s
+  added latency: +0.3s (auditor+a11y measured: 0.00s)
+  FAILED: [architect] Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+=== RUN 5 ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 5.69s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Classic admin dashboard layout with left sidebar navigation and two stat cards displaying key metrics (Revenue and Users). The main content area is predominantly empty below the stat cards, suggesting
+  full pipeline: 5.9s
+  pipeline_complete.success: False
+  error preceded pipeline_complete: yes
+  agent_status errors: architect: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  baseline (no audit/a11y): 6.1s
+  added latency: -0.2s (auditor+a11y measured: 0.00s)
+  FAILED: [architect] Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}

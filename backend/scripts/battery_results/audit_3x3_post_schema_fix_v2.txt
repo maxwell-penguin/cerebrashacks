@@ -1,0 +1,54 @@
+=== login RUN 1 ===
+  auditor latency: 1.15s
+  auditor issues (3): Minor accessibility improvements are recommended for autocomplete, button sizing, and section labeling.
+  full pipeline: 6.0s
+  pipeline_complete.success: True
+
+=== login RUN 2 ===
+  auditor latency: 0.45s
+  auditor issues (5): The component is functionally sound but needs name and autocomplete attributes on inputs and additional ARIA labeling for better accessibility.
+  full pipeline: 5.1s
+  pipeline_complete.success: True
+
+=== login RUN 3 ===
+  auditor latency: 0.80s
+  auditor issues (5): The component works functionally but needs accessibility improvements and a potential import adjustment.
+  full pipeline: 4.3s
+  pipeline_complete.success: True
+
+=== dashboard RUN 1 ===
+  auditor latency: 0.73s
+  auditor issues (4): The component has accessibility gaps in navigation markup and missing focus handling.
+  full pipeline: 6.7s
+  pipeline_complete.success: True
+
+=== dashboard RUN 2 ===
+  auditor latency: 0.49s
+  auditor issues (5): The component is functionally sound but needs several accessibility enhancements for proper keyboard interaction and landmark semantics.
+  full pipeline: 7.5s
+  pipeline_complete.success: True
+
+=== dashboard RUN 3 ===
+  auditor latency: 1.22s
+  auditor issues (4): The component has accessibility concerns: non-semantic clickable divs, missing list semantics, no aria-current, and lacking focus-visible styling.
+  full pipeline: 8.2s
+  pipeline_complete.success: True
+
+=== list RUN 1 ===
+  auditor latency: 0.82s
+  auditor issues (5): The component has several accessibility gaps (missing label, th scope, table caption) and a non‑ideal key usage, plus a minor redundant class expression.
+  full pipeline: 8.6s
+  pipeline_complete.success: True
+
+=== list RUN 2 ===
+  auditor latency: 0.85s
+  auditor issues (5): The component functions but needs accessibility enhancements and a more stable key for table rows.
+  full pipeline: 8.8s
+  pipeline_complete.success: True
+
+=== list RUN 3 ===
+  auditor latency: 0.57s
+  auditor issues (5): The component works but needs key, table caption, th scope, input labeling, and live region for better accessibility.
+  full pipeline: 8.7s
+  pipeline_complete.success: True
+

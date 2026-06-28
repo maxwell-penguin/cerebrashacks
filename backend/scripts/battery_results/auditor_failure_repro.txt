@@ -1,0 +1,427 @@
+Connecting to ws://localhost:8000/ws
+Sketch: test_sketch_list.jpg (35773 bytes)
+Description: 'user list page with search bar and a table of names, emails, and roles'
+
+Sent generate request. Streaming events:
+
+TRACE +0.057s agent_status agent=vision_parser status=thinking
+[agent_status] vision_parser: thinking — Analyzing sketch…
+TRACE +6.327s agent_output agent=vision_parser
+[agent_output] vision_parser:
+{
+  "screen_title": "Users",
+  "components": [
+    {
+      "type": "heading",
+      "label": "Users",
+      "x": 0.0,
+      "y": 0.0,
+      "width": 0.2,
+      "height": 0.08
+    },
+    {
+      "type": "input",
+      "label": "Search...",
+      "x": 0.52,
+      "y": 0.08,
+      "width": 0.48,
+      "height": 0.08
+    },
+    {
+      "type": "table",
+      "label": "Users Table",
+      "x": 0.04,
+      "y": 0.15,
+      "width": 0.96,
+      "height": 0.4
+    },
+    {
+      "type": "text",
+      "label": "Name",
+      "x": 0.04,
+      "y": 0.15,
+      "width": 0.3,
+      "height": 0.06
+    },
+    
+… (truncated)
+TRACE +6.327s agent_status agent=vision_parser status=done
+[agent_status] vision_parser: done — Found 18 components
+TRACE +6.327s agent_status agent=architect status=thinking
+[agent_status] architect: thinking — Designing component tree…
+TRACE +7.712s agent_output agent=architect
+[agent_output] architect:
+{
+  "component_tree": "UsersPage\n  Header\n  SearchBar\n  UsersTable\n    TableHeader\n    TableBody\n      UserRow",
+  "layout_plan": "Mobile\u2011first layout using Tailwind CSS. The page is a vertical flex container (flex flex-col) with padding (p-4). Header uses text\u20112xl, font\u2011bold, mb-4. SearchBar is a full\u2011width input (w-full) with margin\u2011bottom (mb-4), padding (p-2), border, rounded. UsersTable occupies full width (w-full) and uses border\u2011collapse. TableHeader has a light gray background (bg-gray-100) and padded header cells (p-2). TableBody rows are stacked au
+… (truncated)
+TRACE +7.712s agent_status agent=architect status=done
+[agent_status] architect: done — Architecture ready
+TRACE +7.712s agent_status agent=code_forge status=streaming
+[agent_status] code_forge: streaming — Generating React code…
+TRACE +9.414s agent_token agent=code_forge
+[agent_token] code_forge: "import { useState } from 'react';\\n\\nfunction App() {\\n  const [search,"
+TRACE +9.414s tps agent=code_forge
+[tps] code_forge: 0.5 tok/s
+TRACE +9.414s agent_token agent=code_forge
+[agent_token] code_forge: " setSearch] = useState('');\\n  const users = [\\n    { name: 'Alice Smith', email…"
+TRACE +9.414s tps agent=code_forge
+[tps] code_forge: 1.0 tok/s
+TRACE +9.415s agent_token agent=code_forge
+[agent_token] code_forge: " 'alice@example.com', role: 'Admin' },\\n    { name"
+TRACE +9.415s tps agent=code_forge
+[tps] code_forge: 1.5 tok/s
+TRACE +9.415s agent_token agent=code_forge
+[agent_token] code_forge: ": 'Bob Jones', email: 'bob@example.com', role: 'Editor' },\\n    { name: '"
+TRACE +9.415s tps agent=code_forge
+[tps] code_forge: 2.0 tok/s
+TRACE +9.415s agent_token agent=code_forge
+[agent_token] code_forge: "Carol Lee', email: 'carol@example.com', role: 'Viewer' },\\n    { name:"
+TRACE +9.415s tps agent=code_forge
+[tps] code_forge: 2.5 tok/s
+TRACE +9.450s agent_token agent=code_forge
+[agent_token] code_forge: " 'Dan Wu', email: 'dan@example.com', role: 'Editor' },\\n  ];\\n\\n  const filtered…"
+TRACE +9.450s tps agent=code_forge
+[tps] code_forge: 3.0 tok/s
+TRACE +9.450s agent_token agent=code_forge
+[agent_token] code_forge: ' users.filter(u =>\\n    u.name.toLowerCase().includes(search.toLowerCase()) ||\\n…'
+TRACE +9.450s tps agent=code_forge
+[tps] code_forge: 3.5 tok/s
+TRACE +9.450s agent_token agent=code_forge
+[agent_token] code_forge: 'Case().includes(search.toLowerCase()) ||\\n    u.role.toLowerCase().includes(sear…'
+TRACE +9.450s tps agent=code_forge
+[tps] code_forge: 4.0 tok/s
+TRACE +9.451s agent_token agent=code_forge
+[agent_token] code_forge: '  );\\n\\n  return (\\n    <main className="flex flex-col p-4 max-w-4xl mx'
+TRACE +9.451s tps agent=code_forge
+[tps] code_forge: 4.5 tok/s
+TRACE +9.451s agent_token agent=code_forge
+[agent_token] code_forge: '-auto">\\n      <h1 className="text-2xl font-bold mb-4'
+TRACE +9.451s tps agent=code_forge
+[tps] code_forge: 5.0 tok/s
+TRACE +9.468s agent_token agent=code_forge
+[agent_token] code_forge: '">Users</h1>\\n      <input\\n       '
+TRACE +9.468s tps agent=code_forge
+[tps] code_forge: 5.4 tok/s
+TRACE +9.468s agent_token agent=code_forge
+[agent_token] code_forge: ' type="text"\\n        placeholder="Search..."\\n        value={search}\\n        o…'
+TRACE +9.468s tps agent=code_forge
+[tps] code_forge: 5.9 tok/s
+TRACE +9.470s agent_token agent=code_forge
+[agent_token] code_forge: '={e => setSearch(e.target.value)}\\n        className="w-full mb-4'
+TRACE +9.470s tps agent=code_forge
+[tps] code_forge: 6.4 tok/s
+TRACE +9.470s agent_token agent=code_forge
+[agent_token] code_forge: ' p-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"\\n    …'
+TRACE +9.470s tps agent=code_forge
+[tps] code_forge: 6.9 tok/s
+TRACE +9.478s agent_token agent=code_forge
+[agent_token] code_forge: ' <div className="overflow-x-auto">\\n        <table className="w-full border-coll…'
+TRACE +9.478s tps agent=code_forge
+[tps] code_forge: 7.4 tok/s
+TRACE +9.492s agent_token agent=code_forge
+[agent_token] code_forge: ' rounded-lg shadow">\\n          <thead className="bg-gray-100">\\n            <tr…'
+TRACE +9.492s tps agent=code_forge
+[tps] code_forge: 7.8 tok/s
+TRACE +9.496s agent_token agent=code_forge
+[agent_token] code_forge: 'th className="p-2 text-left font-medium">Name</th>\\n              <th className'
+TRACE +9.496s tps agent=code_forge
+[tps] code_forge: 8.3 tok/s
+TRACE +9.496s agent_token agent=code_forge
+[agent_token] code_forge: '="p-2 text-left font-medium">Email</th>\\n              <th class'
+TRACE +9.496s tps agent=code_forge
+[tps] code_forge: 8.8 tok/s
+TRACE +9.504s agent_token agent=code_forge
+[agent_token] code_forge: 'Name="p-2 text-left font-medium">Role</th>\\n            </tr>\\n          </thead…'
+TRACE +9.504s tps agent=code_forge
+[tps] code_forge: 9.2 tok/s
+TRACE +9.509s agent_token agent=code_forge
+[agent_token] code_forge: '          <tbody>\\n            {filtered.map((user, idx) => (\\n              <tr…'
+TRACE +9.509s tps agent=code_forge
+[tps] code_forge: 9.7 tok/s
+TRACE +9.517s agent_token agent=code_forge
+[agent_token] code_forge: ' className={idx !== 0 ? \'border-t\' : \'\'}>\\n                <td className="p'
+TRACE +9.517s tps agent=code_forge
+[tps] code_forge: 10.2 tok/s
+TRACE +9.517s agent_token agent=code_forge
+[agent_token] code_forge: '-2">{user.name}</td>\\n                <td className="p-2">{user.email'
+TRACE +9.517s tps agent=code_forge
+[tps] code_forge: 10.6 tok/s
+TRACE +9.517s agent_token agent=code_forge
+[agent_token] code_forge: '}</td>\\n                <td className="p-2">{user.role}</td>\\n             '
+TRACE +9.517s tps agent=code_forge
+[tps] code_forge: 11.1 tok/s
+TRACE +9.520s agent_token agent=code_forge
+[agent_token] code_forge: ' </tr>\\n            ))}\\n            {filtered.length === 0 && (\\n              …'
+TRACE +9.520s tps agent=code_forge
+[tps] code_forge: 11.6 tok/s
+TRACE +9.520s agent_token agent=code_forge
+[agent_token] code_forge: ' colSpan={3} className="p-2 text-center text-gray-500">\\n                  No us…'
+TRACE +9.520s tps agent=code_forge
+[tps] code_forge: 12.1 tok/s
+TRACE +9.559s agent_token agent=code_forge
+[agent_token] code_forge: ' found.\\n                </td>\\n              </tr>\\n            )}\\n          <…'
+TRACE +9.559s tps agent=code_forge
+[tps] code_forge: 12.3 tok/s
+TRACE +9.566s agent_token agent=code_forge
+[agent_token] code_forge: '>\\n    </main>\\n  );\\n}\\n\\nexport default App;'
+TRACE +9.567s tps agent=code_forge
+[tps] code_forge: 12.8 tok/s
+TRACE +9.579s final_code code_len=2047
+[final_code] (2047 chars)
+TRACE +9.579s agent_status agent=code_forge status=done
+[agent_status] code_forge: done — Code generation complete
+TRACE +9.579s agent_status agent=auditor status=thinking
+[agent_status] auditor: thinking — Reviewing code…
+TRACE +10.205s agent_output agent=auditor
+[agent_output] auditor:
+{
+  "issues": [
+    {
+      "severity": "warning",
+      "message": "Using array index as key can cause rendering bugs; use a stable identifier like email.",
+      "patch": "Replace key={idx} with key={user.email}"
+    },
+    {
+      "severity": "info",
+      "message": "Table lacks a <caption>, which helps screen readers understand its purpose.",
+      "patch": "Add <caption className=\"sr-only\">User list</caption> as the first child of <table>"
+    },
+    {
+      "severity": "warning",
+      "message": "<th> elements should have a scope attribute for better accessibility.",
+      "patch": "
+… (truncated)
+TRACE +10.205s agent_status agent=auditor status=done
+[agent_status] auditor: done — The component needs key improvements, table caption and scope attributes, and better input accessibility.
+TRACE +10.205s agent_status agent=accessibility status=streaming
+[agent_status] accessibility: streaming — Adding ARIA + analytics…
+TRACE +10.578s agent_token agent=accessibility
+[agent_token] accessibility: "import { useState } from 'react';\\n\\nconst track"
+TRACE +10.578s tps agent=accessibility
+[tps] accessibility: 2.7 tok/s
+TRACE +10.579s agent_token agent=accessibility
+[agent_token] accessibility: 'Event = (eventName, payload) => {\\n  // Lightweight'
+TRACE +10.579s tps agent=accessibility
+[tps] accessibility: 5.3 tok/s
+TRACE +10.580s agent_token agent=accessibility
+[agent_token] accessibility: " analytics stub\\n  console.log('Analytics Event"
+TRACE +10.580s tps agent=accessibility
+[tps] accessibility: 8.0 tok/s
+TRACE +10.581s agent_token agent=accessibility
+[agent_token] accessibility: ":', eventName, payload);\\n};\\n\\nfunction App() {\\n  const [search, setSearch"
+TRACE +10.581s tps agent=accessibility
+[tps] accessibility: 10.6 tok/s
+TRACE +10.583s agent_token agent=accessibility
+[agent_token] accessibility: "] = useState('');\\n  const users = [\\n    { name: 'Alice Smith', email: 'alice@e…"
+TRACE +10.583s tps agent=accessibility
+[tps] accessibility: 13.2 tok/s
+TRACE +10.584s agent_token agent=accessibility
+[agent_token] accessibility: ".com', role: 'Admin' },\\n    { name: 'Bob Jones', email: 'bob@example.com"
+TRACE +10.584s tps agent=accessibility
+[tps] accessibility: 15.8 tok/s
+TRACE +10.585s agent_token agent=accessibility
+[agent_token] accessibility: "', role: 'Editor' },\\n    { name: 'Carol Lee', email: 'carol@example.com',"
+TRACE +10.585s tps agent=accessibility
+[tps] accessibility: 18.3 tok/s
+TRACE +10.587s agent_token agent=accessibility
+[agent_token] accessibility: " role: 'Viewer' },\\n    { name: 'Dan Wu',"
+TRACE +10.587s tps agent=accessibility
+[tps] accessibility: 20.8 tok/s
+TRACE +10.592s agent_token agent=accessibility
+[agent_token] accessibility: " email: 'dan@example.com', role: 'Editor' },\\n  ];\\n\\n  const filtered ="
+TRACE +10.592s tps agent=accessibility
+[tps] accessibility: 23.2 tok/s
+TRACE +10.592s agent_token agent=accessibility
+[agent_token] accessibility: ' users.filter(u =>\\n    u.name.toLowerCase().includes(search.toLowerCase()) ||\\n…'
+TRACE +10.592s tps agent=accessibility
+[tps] accessibility: 25.7 tok/s
+TRACE +10.596s agent_token agent=accessibility
+[agent_token] accessibility: 'LowerCase().includes(search.toLowerCase()) ||\\n    u.role.toLowerCase().includes…'
+TRACE +10.596s tps agent=accessibility
+[tps] accessibility: 28.0 tok/s
+TRACE +10.602s agent_token agent=accessibility
+[agent_token] accessibility: 'Case())\\n  );\\n\\n  const handleSearchChange = (e) =>'
+TRACE +10.602s tps agent=accessibility
+[tps] accessibility: 30.1 tok/s
+TRACE +10.603s agent_token agent=accessibility
+[agent_token] accessibility: ' {\\n    const value = e.target.value;\\n    setSearch(value);\\n    trackEvent'
+TRACE +10.603s tps agent=accessibility
+[tps] accessibility: 32.5 tok/s
+TRACE +10.606s agent_token agent=accessibility
+[agent_token] accessibility: "('search', { query: value });\\n  };\\n\\n  return (\\n    <main\\n     "
+TRACE +10.606s tps agent=accessibility
+[tps] accessibility: 34.8 tok/s
+TRACE +10.606s agent_token agent=accessibility
+[agent_token] accessibility: ' className="flex flex-col p-4 max-w-4xl mx-auto"\\n      role="main"\\n'
+TRACE +10.606s tps agent=accessibility
+[tps] accessibility: 37.2 tok/s
+TRACE +10.607s agent_token agent=accessibility
+[agent_token] accessibility: '      aria-label="User management"\\n   '
+TRACE +10.607s tps agent=accessibility
+[tps] accessibility: 39.6 tok/s
+TRACE +10.607s agent_token agent=accessibility
+[agent_token] accessibility: ' >\\n      <h1 className="text-2xl font-bold mb-4">Users'
+TRACE +10.607s tps agent=accessibility
+[tps] accessibility: 42.1 tok/s
+TRACE +10.608s agent_token agent=accessibility
+[agent_token] accessibility: '</h1>\\n      <input\\n        type="text"\\n        placeholder="Search..."\\n     …'
+TRACE +10.608s tps agent=accessibility
+[tps] accessibility: 44.4 tok/s
+TRACE +10.615s agent_token agent=accessibility
+[agent_token] accessibility: ' aria-label="Search users"\\n        value={search}\\n        on'
+TRACE +10.615s tps agent=accessibility
+[tps] accessibility: 46.1 tok/s
+TRACE +10.618s agent_token agent=accessibility
+[agent_token] accessibility: 'Change={handleSearchChange}\\n        className="w-full mb-4 p-2 border rounded f…'
+TRACE +10.618s tps agent=accessibility
+[tps] accessibility: 48.2 tok/s
+TRACE +10.627s agent_token agent=accessibility
+[agent_token] accessibility: ' focus:ring-2 focus:ring-indigo-500"\\n      />\\n      <div className="overflow-x…'
+TRACE +10.627s tps agent=accessibility
+[tps] accessibility: 49.5 tok/s
+TRACE +10.628s agent_token agent=accessibility
+[agent_token] accessibility: ' <table\\n          className="w-full border-collapse bg-white rounded-lg shadow"…'
+TRACE +10.628s tps agent=accessibility
+[tps] accessibility: 51.8 tok/s
+TRACE +10.642s agent_token agent=accessibility
+[agent_token] accessibility: ' aria-label="User list"\\n        >\\n          <thead className="bg-gray-'
+TRACE +10.642s tps agent=accessibility
+[tps] accessibility: 52.4 tok/s
+TRACE +10.644s agent_token agent=accessibility
+[agent_token] accessibility: '100">\\n            <tr role="row">\\n              <th className'
+TRACE +10.644s tps agent=accessibility
+[tps] accessibility: 54.5 tok/s
+TRACE +10.662s agent_token agent=accessibility
+[agent_token] accessibility: '="p-2 text-left font-medium" role="columnheader'
+TRACE +10.662s tps agent=accessibility
+[tps] accessibility: 54.5 tok/s
+TRACE +10.662s agent_token agent=accessibility
+[agent_token] accessibility: '">\\n                Name\\n              </th>\\n              <th className="p-2 …'
+TRACE +10.662s tps agent=accessibility
+[tps] accessibility: 56.6 tok/s
+TRACE +10.663s agent_token agent=accessibility
+[agent_token] accessibility: '="columnheader">\\n                Email\\n              </th>\\n              <th …'
+TRACE +10.663s tps agent=accessibility
+[tps] accessibility: 58.7 tok/s
+TRACE +10.663s agent_token agent=accessibility
+[agent_token] accessibility: '-medium" role="columnheader">\\n                Role\\n              </th>\\n      …'
+TRACE +10.663s tps agent=accessibility
+[tps] accessibility: 60.8 tok/s
+TRACE +10.665s agent_token agent=accessibility
+[agent_token] accessibility: '          <tbody role="rowgroup">\\n            {filtered.map((user, idx) => (\\n …'
+TRACE +10.665s tps agent=accessibility
+[tps] accessibility: 62.7 tok/s
+TRACE +10.672s agent_token agent=accessibility
+[agent_token] accessibility: "\\n                key={idx}\\n                className={idx !== 0 ? '"
+TRACE +10.672s tps agent=accessibility
+[tps] accessibility: 63.9 tok/s
+TRACE +10.675s agent_token agent=accessibility
+[agent_token] accessibility: 'border'
+TRACE +10.675s tps agent=accessibility
+[tps] accessibility: 65.7 tok/s
+TRACE +10.679s agent_token agent=accessibility
+[agent_token] accessibility: "-t' :"
+TRACE +10.679s tps agent=accessibility
+[tps] accessibility: 67.2 tok/s
+TRACE +10.685s agent_token agent=accessibility
+[agent_token] accessibility: ' \'\'}\\n                role="row"\\n                tabIndex={0}\\n'
+TRACE +10.685s tps agent=accessibility
+[tps] accessibility: 68.5 tok/s
+TRACE +10.694s agent_token agent=accessibility
+[agent_token] accessibility: '               '
+TRACE +10.694s tps agent=accessibility
+[tps] accessibility: 69.3 tok/s
+TRACE +10.694s agent_token agent=accessibility
+[agent_token] accessibility: ' on'
+TRACE +10.694s tps agent=accessibility
+[tps] accessibility: 71.2 tok/s
+TRACE +10.698s agent_token agent=accessibility
+[agent_token] accessibility: "KeyPress={(e) => {\\n                  if (e.key === 'Enter') {\\n                …"
+TRACE +10.698s tps agent=accessibility
+[tps] accessibility: 72.7 tok/s
+TRACE +10.704s agent_token agent=accessibility
+[agent_token] accessibility: " trackEvent('row-activate', { user });\\n                  }\\n                }}\\…"
+TRACE +10.704s tps agent=accessibility
+[tps] accessibility: 73.8 tok/s
+TRACE +10.709s agent_token agent=accessibility
+[agent_token] accessibility: '              >\\n                <td className="p-2" role="cell">{user.name}</td…'
+TRACE +10.709s tps agent=accessibility
+[tps] accessibility: 75.0 tok/s
+TRACE +10.713s agent_token agent=accessibility
+[agent_token] accessibility: 'td className="'
+TRACE +10.713s tps agent=accessibility
+[tps] accessibility: 76.4 tok/s
+TRACE +10.718s agent_token agent=accessibility
+[agent_token] accessibility: 'p-2" role="cell">{user.email}</td>\\n                <td className="p-2" role="ce…'
+TRACE +10.718s tps agent=accessibility
+[tps] accessibility: 77.6 tok/s
+TRACE +10.724s agent_token agent=accessibility
+[agent_token] accessibility: 'tr>\\n            ))}\\n           '
+TRACE +10.724s tps agent=accessibility
+[tps] accessibility: 78.8 tok/s
+TRACE +10.729s agent_token agent=accessibility
+[agent_token] accessibility: ' {filtered.length === 0 && (\\n              <tr role="row">\\n                <td'
+TRACE +10.729s tps agent=accessibility
+[tps] accessibility: 79.8 tok/s
+TRACE +10.738s agent_token agent=accessibility
+[agent_token] accessibility: '\\n                  colSpan={3}\\n                  className="p-2 text-center te…'
+TRACE +10.738s tps agent=accessibility
+[tps] accessibility: 80.4 tok/s
+TRACE +10.738s agent_token agent=accessibility
+[agent_token] accessibility: '"\\n                  aria-live="polite"\\n                >\\n                  No…'
+TRACE +10.738s tps agent=accessibility
+[tps] accessibility: 82.2 tok/s
+TRACE +10.746s agent_token agent=accessibility
+[agent_token] accessibility: ' )}\\n          </tbody>\\n        </table>\\n      </div>\\n    </main>\\n  );\\n}\\n\\…'
+TRACE +10.746s tps agent=accessibility
+[tps] accessibility: 82.9 tok/s
+TRACE +10.753s agent_token agent=accessibility
+[agent_token] accessibility: ';'
+TRACE +10.753s tps agent=accessibility
+[tps] accessibility: 83.7 tok/s
+TRACE +10.755s final_code code_len=3184
+[final_code] (3184 chars)
+TRACE +10.755s agent_status agent=accessibility status=done
+[agent_status] accessibility: done — Accessibility pass complete
+TRACE +10.755s pipeline_complete
+[pipeline_complete] code=3184 chars
+
+============================================================
+SUMMARY
+  sketch: test_sketch_list.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 6.27s
+  architect latency: 1.39s
+  code_forge latency: 1.87s
+  vision components (18): heading:Users, input:Search..., table:Users Table, text:Name, text:Email, text:Role, text:Alice Smith, text:alice@example.com, text:Admin, text:Bob Jones, text:bob@example.com, text:Editor, text:Carol Lee, text:carol@example.com, text:Viewer, text:Dan Wu, text:dan@example.com, text:Editor
+  screen_title: Users
+  vision notes: Users list page with header, search input field, and data table displaying user information (name, email, role). Table contains 4 user rows with consistent formatting. All elements use simple rectangu
+  architect tree:
+UsersPage
+  Header
+  SearchBar
+  UsersTable
+    TableHeader
+    TableBody
+      UserRow
+  architect layout: Mobile‑first layout using Tailwind CSS. The page is a vertical flex container (flex flex-col) with padding (p-4). Header uses text‑2xl, font‑bold, mb-4. SearchBar is a full‑width input (w-full) with margin‑bottom (mb-4), padding (p-2), border, rounded. UsersTable occupies full width (w-full) and use…
+  auditor latency: 0.63s
+  auditor issues (5): The component needs key improvements, table caption and scope attributes, and better input accessibility.
+    1. [warning] Using array index as key can cause rendering bugs; use a stable identifier like email.
+       patch: Replace key={idx} with key={user.email}
+    2. [info] Table lacks a <caption>, which helps screen readers understand its purpose.
+       patch: Add <caption className="sr-only">User list</caption> as the first child of <table>
+    3. [warning] <th> elements should have a scope attribute for better accessibility.
+       patch: Add scope="col" to each <th>, e.g., <th scope="col" className="p-2 text-left font-medium">Name</th>
+    4. [warning] The search input has no associated label, making it inaccessible to assistive tech.
+       patch: Add aria-label="Search users" to the <input> element
+    5. [info] Consider using type="search" for the input to convey its purpose semantically.
+       patch: Change type="text" to type="search" on the <input>
+  accessibility latency: 0.55s
+  code_forge checks: length=2047 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=3184 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 10.8s
+  baseline (no audit/a11y): 8.5s
+  added latency: +2.3s (auditor+a11y measured: 1.18s)
+  code checks: length=3184 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent

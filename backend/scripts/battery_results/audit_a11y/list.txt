@@ -1,0 +1,15 @@
+=== LIST ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_list.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 6.82s
+  vision components (18): heading:Users, input:Search..., table:Users Table, text:Name, text:Email, text:Role, text:Alice Smith, text:alice@example.com, text:Admin, text:Bob Jones, text:bob@example.com, text:Editor, text:Carol Lee, text:carol@example.com, text:Viewer, text:Dan Wu, text:dan@example.com, text:Editor
+  screen_title: Users
+  vision notes: Users management page with header, search input field, and data table containing 4 user entries with Name, Email, and Role columns. Table has alternating row styling indicated by subtle background var
+  auditor: no output captured
+  full pipeline: 7.9s
+  baseline (no audit/a11y): 8.5s
+  added latency: -0.6s (auditor+a11y measured: 0.00s)
+  FAILED: [unknown] Unterminated string starting at: line 5 column 19 (char 1208)

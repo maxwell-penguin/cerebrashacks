@@ -1,0 +1,161 @@
+=== DASHBOARD ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_dashboard.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 4.48s
+  vision components (11): heading:Dashboard, nav:Sidebar Navigation, text:Home, text:Settings, text:Reports, card:Revenue, text:Revenue, text:$12,400, card:Users, text:Users, text:1,284
+  screen_title: Dashboard
+  vision notes: Left sidebar navigation with three menu items (Home, Settings, Reports). Header with 'Dashboard' title. Two stat cards displaying Revenue ($12,400) and Users (1,284) in a grid layout. Minimal sketch s
+  architect tree:
+DashboardPage
+  ├─ Sidebar
+  │   ├─ NavItem (Home)
+  │   ├─ NavItem (Settings)
+  │   └─ NavItem (Reports)
+  ├─ Header
+  │   └─ h1 (Dashboard)
+  └─ Main
+      ├─ StatCards
+      │   ├─ Card (Revenue)
+      │   └─ Card (Users)
+      └─ ContentPlaceholder
+  architect layout: Mobile‑first Tailwind CSS:
+- Root: <div className="flex flex-col min-h-screen bg-gray-100">
+- Sidebar: hidden on small screens (md:block), width fixed (w-64), bg-gray-800, text-white, flex-col, py-4.
+- Header: w-full, bg-white, shadow, px-4 py-2, flex items-center justify-between.
+- Main content: fl…
+  auditor latency: 0.81s
+  auditor issues (4): The component needs minor accessibility improvements: label the toggle button, replace placeholder links with buttons, hide the SVG from AT, and set button type.
+    1. [warning] Mobile menu button lacks an accessible label for screen readers.
+       patch: Add aria-label to the button: <button aria-label="Toggle sidebar" ...>
+    2. [warning] Placeholder links use href="#" which causes a page jump and are not keyboard‑friendly.
+       patch: Replace <a href="#" ...> with <button type="button" className="px-4 py-2 hover:bg-gray-700">
+    3. [info] The SVG icon inside the button is not hidden from assistive technology.
+       patch: Add aria-hidden="true" to the svg: <svg aria-hidden="true" className="w-6 h-6" ...>
+    4. [info] Button element should explicitly declare type to avoid default submit behavior in forms.
+       patch: Add type="button" to the button: <button type="button" ...>
+  accessibility latency: 0.87s
+  code_forge checks: length=2608 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=3679 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 61.3s
+  baseline (no audit/a11y): 6.1s
+  added latency: +55.2s (auditor+a11y measured: 1.68s)
+  code checks: length=3679 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+
+SUCCESS — final code:
+
+------------------------------------------------------------
+import { useState } from 'react';
+
+const trackEvent = (eventName, data) => {
+  // Lightweight analytics stub
+  console.log('Analytics:', eventName, data);
+};
+
+const App = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div
+        id="sidebar"
+        className={`
+          fixed inset-y-0 left-0 z-30 w-64 bg-gray-800 text-white
+          transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          transition-transform duration-200 ease-in-out
+          md:relative md:translate-x-0 md:flex md:flex-col
+        `}
+      >
+        <nav
+          className="flex flex-col py-4"
+          role="navigation"
+          aria-label="Main navigation"
+        >
+          <a
+            href="#"
+            className="px-4 py-2 hover:bg-gray-700"
+            onClick={() => trackEvent('navigate', { destination: 'Home' })}
+          >
+            Home
+          </a>
+          <a
+            href="#"
+            className="px-4 py-2 hover:bg-gray-700"
+            onClick={() => trackEvent('navigate', { destination: 'Settings' })}
+          >
+            Settings
+          </a>
+          <a
+            href="#"
+            className="px-4 py-2 hover:bg-gray-700"
+            onClick={() => trackEvent('navigate', { destination: 'Reports' })}
+          >
+            Reports
+          </a>
+        </nav>
+      </div>
+
+      {/* Main content area */}
+      <div className="flex flex-col flex-1 md:ml-64">
+        {/* Header */}
+        <header
+          className="w-full bg-white shadow px-4 py-2 flex items-center justify-between"
+          role="banner"
+        >
+          <h1 className="text-2xl font-semibold text-gray-800">Dashboard</h1>
+          {/* Mobile menu button */}
+          <button
+            type="button"
+            className="md:hidden text-gray-600 focus:outline-none"
+            aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={sidebarOpen}
+            aria-controls="sidebar"
+            onClick={() => {
+              setSidebarOpen(!sidebarOpen);
+              trackEvent('toggle_sidebar', { open: !sidebarOpen });
+            }}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d={sidebarOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
+              />
+            </svg>
+          </button>
+        </header>
+
+        {/* Main */}
+        <main className="flex-1 p-4" role="main">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              className="bg-white rounded-lg shadow p-6 flex flex-col items-center text-center"
+              role="region"
+              aria-label="Revenue"
+            >
+              <span className="text-sm text-gray-500 mb-2">Revenue</span>
+              <span className="text-2xl font-bold text-gray-800">$12,400</span>
+            </div>
+            <div
+              className="bg-white rounded-lg shadow p-6 flex flex-col items-center text-center"
+              role="region"
+              aria-label="Users"
+            >
+              <span className="text-sm text-gray-500 mb-2">Users</span>
+              <span className="text-2xl font-bold text-gray-800">1,284</span>
+            </div>
+          </div>
+          {/* Placeholder for additional content */}
+          <div className="mt-6">{/* Empty space for future content */}</div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default App;
+------------------------------------------------------------

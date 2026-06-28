@@ -1,0 +1,65 @@
+=== LOGIN ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 2.50s
+  vision components (4): heading:Login, input:Email, input:Password, button:Sign In
+  screen_title: Login
+  vision notes: Standard login form with title header, two input fields (email and password), and a centered Sign In button. Clean, minimal layout with ample vertical spacing between elements.
+  login accuracy: 4/4 (heading:Login, input:Email, input:Password, button:Sign In)
+  architect tree:
+App
+  LoginScreen
+    Header
+    EmailInput
+    PasswordInput
+    SignInButton
+  architect layout: Mobile‑first Tailwind layout: a full‑height container centered with `flex items-center justify-center`. Inside, a `section` uses `flex flex-col` and `space-y-4` for vertical spacing. Heading is centered with `text-2xl font-bold text-center`. Inputs span full width (`w-full`) with `border rounded px-…
+  full pipeline: 4.5s
+  code checks: length=1287 chars, has export default, has Tailwind classes, has JSX
+
+SUCCESS — final code:
+
+------------------------------------------------------------
+import { useState } from 'react';
+
+export default function App() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log({ email, password });
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <section className="w-full max-w-md p-6 bg-white rounded shadow-md flex flex-col space-y-4">
+        <h1 className="text-2xl font-bold text-center">Login</h1>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <button
+          onClick={handleSubmit}
+          className="w-1/2 mx-auto bg-indigo-600 text-white rounded py-2 hover:bg-indigo-700 transition"
+        >
+          Sign In
+        </button>
+      </section>
+    </div>
+  );
+}
+------------------------------------------------------------

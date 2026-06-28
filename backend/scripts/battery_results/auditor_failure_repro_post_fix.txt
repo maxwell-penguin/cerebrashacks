@@ -1,0 +1,317 @@
+Connecting to ws://localhost:8000/ws
+Sketch: test_sketch_list.jpg (35773 bytes)
+Description: 'user list page with search bar and a table of names, emails, and roles'
+
+Sent generate request. Streaming events:
+
+TRACE +0.053s agent_status agent=vision_parser status=thinking
+[agent_status] vision_parser: thinking — Analyzing sketch…
+TRACE +6.159s agent_output agent=vision_parser
+[agent_output] vision_parser:
+{
+  "screen_title": "Users Management",
+  "components": [
+    {
+      "type": "heading",
+      "label": "Users",
+      "x": 0.0,
+      "y": 0.0,
+      "width": 0.2,
+      "height": 0.08
+    },
+    {
+      "type": "input",
+      "label": "Search...",
+      "x": 0.52,
+      "y": 0.08,
+      "width": 0.48,
+      "height": 0.06
+    },
+    {
+      "type": "table",
+      "label": "Users Table",
+      "x": 0.04,
+      "y": 0.15,
+      "width": 0.96,
+      "height": 0.42
+    },
+    {
+      "type": "text",
+      "label": "Name",
+      "x": 0.04,
+      "y": 0.15,
+      "width": 0.25,
+      "height": 0.0
+… (truncated)
+TRACE +6.159s agent_status agent=vision_parser status=done
+[agent_status] vision_parser: done — Found 18 components
+TRACE +6.159s agent_status agent=architect status=thinking
+[agent_status] architect: thinking — Designing component tree…
+TRACE +7.168s agent_output agent=architect
+[agent_output] architect:
+{
+  "component_tree": "UsersManagement\n\u251c\u2500 Header\n\u251c\u2500 SearchBar\n\u2514\u2500 UsersTable\n    \u251c\u2500 TableHeader\n    \u2514\u2500 TableBody\n        \u2514\u2500 TableRow (repeated)",
+  "layout_plan": "Mobile\u2011first layout using Tailwind CSS:\n- Root <main> uses flex flex-col with p-4 for spacing.\n- Header is a flex container (justify-between items-center) containing the page title (h1) and the search input. On small screens the title and input stack (flex-col) with mb-2; on md+ they sit side\u2011by\u2011side.\n- SearchBar input uses border rounded, px-2 py-1, 
+… (truncated)
+TRACE +7.169s agent_status agent=architect status=done
+[agent_status] architect: done — Architecture ready
+TRACE +7.169s agent_status agent=code_forge status=streaming
+[agent_status] code_forge: streaming — Generating React code…
+TRACE +7.732s agent_token agent=code_forge
+[agent_token] code_forge: 'import'
+TRACE +7.732s tps agent=code_forge
+[tps] code_forge: 1.8 tok/s
+TRACE +7.733s agent_token agent=code_forge
+[agent_token] code_forge: ' {'
+TRACE +7.733s tps agent=code_forge
+[tps] code_forge: 3.5 tok/s
+TRACE +7.733s agent_token agent=code_forge
+[agent_token] code_forge: ' use'
+TRACE +7.733s tps agent=code_forge
+[tps] code_forge: 5.3 tok/s
+TRACE +7.733s agent_token agent=code_forge
+[agent_token] code_forge: 'State'
+TRACE +7.733s tps agent=code_forge
+[tps] code_forge: 7.1 tok/s
+TRACE +7.733s agent_token agent=code_forge
+[agent_token] code_forge: ' }'
+TRACE +7.733s tps agent=code_forge
+[tps] code_forge: 8.8 tok/s
+TRACE +7.733s agent_token agent=code_forge
+[agent_token] code_forge: " from 'react';\\n\\n"
+TRACE +7.733s tps agent=code_forge
+[tps] code_forge: 10.6 tok/s
+TRACE +7.733s agent_token agent=code_forge
+[agent_token] code_forge: "export default function App() {\\n  const users = [\\n    { name: 'Alice Smith', e…"
+TRACE +7.734s tps agent=code_forge
+[tps] code_forge: 12.3 tok/s
+TRACE +7.734s agent_token agent=code_forge
+[agent_token] code_forge: "@example.com', role: 'Admin' },\\n    { name: 'Bob Jones', email: 'bob"
+TRACE +7.734s tps agent=code_forge
+[tps] code_forge: 14.1 tok/s
+TRACE +7.734s agent_token agent=code_forge
+[agent_token] code_forge: "@example.com', role: 'Editor' },\\n    { name: 'Carol Lee', email: 'car"
+TRACE +7.734s tps agent=code_forge
+[tps] code_forge: 15.9 tok/s
+TRACE +7.735s agent_token agent=code_forge
+[agent_token] code_forge: "ol@example.com', role: 'Viewer' },\\n    { name: 'Dan Wu', email:"
+TRACE +7.735s tps agent=code_forge
+[tps] code_forge: 17.6 tok/s
+TRACE +7.743s agent_token agent=code_forge
+[agent_token] code_forge: " 'dan@example.com', role: 'Editor' },\\n  ];\\n\\n"
+TRACE +7.743s tps agent=code_forge
+[tps] code_forge: 19.1 tok/s
+TRACE +7.747s agent_token agent=code_forge
+[agent_token] code_forge: ' '
+TRACE +7.747s tps agent=code_forge
+[tps] code_forge: 20.7 tok/s
+TRACE +7.749s agent_token agent=code_forge
+[agent_token] code_forge: " const [search, setSearch] = useState('');\\n\\n "
+TRACE +7.749s tps agent=code_forge
+[tps] code_forge: 22.3 tok/s
+TRACE +7.754s agent_token agent=code_forge
+[agent_token] code_forge: ' const filteredUsers = users.filter(({ name, email, role }) => {\\n    const term…'
+TRACE +7.754s tps agent=code_forge
+[tps] code_forge: 23.8 tok/s
+TRACE +7.759s agent_token agent=code_forge
+[agent_token] code_forge: 'LowerCase().includes(term) ||\\n      email.toLowerCase().includes(term) ||\\n    …'
+TRACE +7.759s tps agent=code_forge
+[tps] code_forge: 25.3 tok/s
+TRACE +7.765s agent_token agent=code_forge
+[agent_token] code_forge: ' (\\n    <main className="p-4 md:p-6 flex flex-col gap-4">\\n      <header class'
+TRACE +7.766s tps agent=code_forge
+[tps] code_forge: 26.7 tok/s
+TRACE +7.770s agent_token agent=code_forge
+[agent_token] code_forge: 'Name="flex flex-col md:flex-row justify-between items-center mb-4">\\n        <h1…'
+TRACE +7.770s tps agent=code_forge
+[tps] code_forge: 28.2 tok/s
+TRACE +7.775s agent_token agent=code_forge
+[agent_token] code_forge: '2 md:mb-0">Users</h1>\\n        <input\\n          type="text"\\n'
+TRACE +7.775s tps agent=code_forge
+[tps] code_forge: 29.6 tok/s
+TRACE +7.869s agent_token agent=code_forge
+[agent_token] code_forge: '          placeholder="Search..."\\n          aria-label="Search users"\\n        …'
+TRACE +7.870s tps agent=code_forge
+[tps] code_forge: 27.0 tok/s
+TRACE +7.870s agent_token agent=code_forge
+[agent_token] code_forge: ')}\\n          className="border rounded px-2 py-1 w-full md:w-64 focus:outline-n…'
+TRACE +7.870s tps agent=code_forge
+[tps] code_forge: 28.4 tok/s
+TRACE +7.870s agent_token agent=code_forge
+[agent_token] code_forge: ' />\\n      </header>\\n\\n      <section className="overflow-x-auto rounded shadow…'
+TRACE +7.870s tps agent=code_forge
+[tps] code_forge: 29.8 tok/s
+TRACE +7.871s agent_token agent=code_forge
+[agent_token] code_forge: 'Name="min-w-full border border-gray-200">\\n          <thead className="bg-gray-1…'
+TRACE +7.871s tps agent=code_forge
+[tps] code_forge: 31.2 tok/s
+TRACE +7.871s agent_token agent=code_forge
+[agent_token] code_forge: 'th className="px-4 py-2 text-left font-medium">Name</th>\\n              <th clas…'
+TRACE +7.871s tps agent=code_forge
+[tps] code_forge: 32.7 tok/s
+TRACE +7.871s agent_token agent=code_forge
+[agent_token] code_forge: ' text-left font-medium">Email</th>\\n              <th className="px-4 py-2 text-…'
+TRACE +7.871s tps agent=code_forge
+[tps] code_forge: 34.1 tok/s
+TRACE +7.872s agent_token agent=code_forge
+[agent_token] code_forge: '">Role</th>\\n            </tr>\\n          </thead>\\n          <tbody>\\n         …'
+TRACE +7.872s tps agent=code_forge
+[tps] code_forge: 35.5 tok/s
+TRACE +7.872s agent_token agent=code_forge
+[agent_token] code_forge: '((user, idx) => (\\n              <tr\\n                key={idx}\\n               …'
+TRACE +7.872s tps agent=code_forge
+[tps] code_forge: 36.9 tok/s
+TRACE +7.872s agent_token agent=code_forge
+[agent_token] code_forge: 'ors"\\n              >\\n                <td className="px-4 py'
+TRACE +7.872s tps agent=code_forge
+[tps] code_forge: 38.3 tok/s
+TRACE +7.873s agent_token agent=code_forge
+[agent_token] code_forge: '-'
+TRACE +7.873s tps agent=code_forge
+[tps] code_forge: 39.7 tok/s
+TRACE +7.873s agent_token agent=code_forge
+[agent_token] code_forge: '2'
+TRACE +7.873s tps agent=code_forge
+[tps] code_forge: 41.0 tok/s
+TRACE +7.873s agent_token agent=code_forge
+[agent_token] code_forge: '">{user.name}</td>\\n                <td className="px-4 py-2">{user.email}</td>\\…'
+TRACE +7.873s tps agent=code_forge
+[tps] code_forge: 42.4 tok/s
+TRACE +7.874s agent_token agent=code_forge
+[agent_token] code_forge: 'Name="px-4 py-2">{user.role}</td>\\n              </tr>\\n            ))}\\n       …'
+TRACE +7.874s tps agent=code_forge
+[tps] code_forge: 43.8 tok/s
+TRACE +7.874s agent_token agent=code_forge
+[agent_token] code_forge: ' (\\n              <tr>\\n                <td\\n                  colSpan="3"\\n    …'
+TRACE +7.875s tps agent=code_forge
+[tps] code_forge: 45.2 tok/s
+TRACE +7.875s agent_token agent=code_forge
+[agent_token] code_forge: '            )}\\n          </tbody>\\n        </table>\\n      </section>\\n    </ma…'
+TRACE +7.875s tps agent=code_forge
+[tps] code_forge: 46.6 tok/s
+TRACE +7.876s final_code code_len=2429
+[final_code] (2429 chars)
+TRACE +7.876s agent_status agent=code_forge status=done
+[agent_status] code_forge: done — Code generation complete
+TRACE +7.876s agent_status agent=auditor status=thinking
+[agent_status] auditor: thinking — Reviewing code…
+TRACE +7.949s agent_status agent=auditor status=error
+[agent_status] auditor: error — Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+TRACE +7.949s error agent=auditor msg=Error code: 429 - {'message': 'Requests per minute limit exceeded - too many req
+[error] agent=auditor: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+TRACE +7.949s agent_status agent=accessibility status=streaming
+[agent_status] accessibility: streaming — Adding ARIA + analytics…
+TRACE +8.030s agent_status agent=accessibility status=error
+[agent_status] accessibility: error — Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+TRACE +8.030s error agent=accessibility msg=Error code: 429 - {'message': 'Requests per minute limit exceeded - too many req
+[error] agent=accessibility: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+TRACE +8.030s pipeline_complete
+[pipeline_complete] success=True code=2429 chars
+
+============================================================
+SUMMARY
+  sketch: test_sketch_list.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 6.11s
+  architect latency: 1.01s
+  code_forge latency: 0.71s
+  vision components (18): heading:Users, input:Search..., table:Users Table, text:Name, text:Email, text:Role, text:Alice Smith, text:alice@example.com, text:Admin, text:Bob Jones, text:bob@example.com, text:Editor, text:Carol Lee, text:carol@example.com, text:Viewer, text:Dan Wu, text:dan@example.com, text:Editor
+  screen_title: Users Management
+  vision notes: User management list page with header navigation area, search input field, and data table displaying 4 users with Name, Email, and Role columns. Table rows have borders and are clearly separated. Sear
+  architect tree:
+UsersManagement
+├─ Header
+├─ SearchBar
+└─ UsersTable
+    ├─ TableHeader
+    └─ TableBody
+        └─ TableRow (repeated)
+  architect layout: Mobile‑first layout using Tailwind CSS:
+- Root <main> uses flex flex-col with p-4 for spacing.
+- Header is a flex container (justify-between items-center) containing the page title (h1) and the search input. On small screens the title and input stack (flex-col) with mb-2; on md+ they sit side‑by‑sid…
+  auditor: no output captured
+  code_forge checks: length=2429 chars, has export default, has Tailwind classes, has JSX, has aria-*, no trackEvent
+  full pipeline: 8.0s
+  pipeline_complete.success: True
+  error preceded pipeline_complete: yes
+  agent_status errors: auditor: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}, accessibility: Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  baseline (no audit/a11y): 8.5s
+  added latency: -0.5s (auditor+a11y measured: 0.00s)
+  partial failure (core OK): [accessibility] Error code: 429 - {'message': 'Requests per minute limit exceeded - too many requests sent.', 'type': 'too_many_requests_error', 'param': 'quota', 'code': 'request_quota_exceeded'}
+  code checks: length=2429 chars, has export default, has Tailwind classes, has JSX, has aria-*, no trackEvent
+
+SUCCESS — final code:
+
+------------------------------------------------------------
+import { useState } from 'react';
+
+export default function App() {
+  const users = [
+    { name: 'Alice Smith', email: 'alice@example.com', role: 'Admin' },
+    { name: 'Bob Jones', email: 'bob@example.com', role: 'Editor' },
+    { name: 'Carol Lee', email: 'carol@example.com', role: 'Viewer' },
+    { name: 'Dan Wu', email: 'dan@example.com', role: 'Editor' },
+  ];
+
+  const [search, setSearch] = useState('');
+
+  const filteredUsers = users.filter(({ name, email, role }) => {
+    const term = search.toLowerCase();
+    return (
+      name.toLowerCase().includes(term) ||
+      email.toLowerCase().includes(term) ||
+      role.toLowerCase().includes(term)
+    );
+  });
+
+  return (
+    <main className="p-4 md:p-6 flex flex-col gap-4">
+      <header className="flex flex-col md:flex-row justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold mb-2 md:mb-0">Users</h1>
+        <input
+          type="text"
+          placeholder="Search..."
+          aria-label="Search users"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border rounded px-2 py-1 w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </header>
+
+      <section className="overflow-x-auto rounded shadow-sm">
+        <table className="min-w-full border border-gray-200">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="px-4 py-2 text-left font-medium">Name</th>
+              <th className="px-4 py-2 text-left font-medium">Email</th>
+              <th className="px-4 py-2 text-left font-medium">Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredUsers.map((user, idx) => (
+              <tr
+                key={idx}
+                className="border-t hover:bg-gray-50 transition-colors"
+              >
+                <td className="px-4 py-2">{user.name}</td>
+                <td className="px-4 py-2">{user.email}</td>
+                <td className="px-4 py-2">{user.role}</td>
+              </tr>
+            ))}
+            {filteredUsers.length === 0 && (
+              <tr>
+                <td
+                  colSpan="3"
+                  className="px-4 py-2 text-center text-gray-500"
+                >
+                  No users found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </section>
+    </main>
+  );
+}
+------------------------------------------------------------

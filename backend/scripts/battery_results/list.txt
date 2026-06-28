@@ -1,0 +1,96 @@
+=== LIST ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch_list.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 5.84s
+  vision components (18): heading:Users, input:Search..., table:Users Table, text:Name, text:Email, text:Role, text:Alice Smith, text:alice@example.com, text:Admin, text:Bob Jones, text:bob@example.com, text:Editor, text:Carol Lee, text:carol@example.com, text:Viewer, text:Dan Wu, text:dan@example.com, text:Editor
+  screen_title: Users
+  vision notes: Users list management page with header navigation, search input field for filtering, and a table with 4 user entries displaying Name, Email, and Role columns. Clean tabular layout with clear row separ
+  architect tree:
+App
+  UsersPage
+    Header
+    SearchBar
+    UsersTable
+      TableHeader
+      TableBody
+  architect layout: Mobile‑first Tailwind layout:
+- Root container: `container mx-auto p-4` for horizontal centering and padding.
+- Stack components vertically using `flex flex-col space-y-4`.
+- Header: `text-2xl font-bold mb-2`.
+- SearchBar: full width on mobile (`w-full`) and half width on medium screens (`md:w-1/2`)…
+  full pipeline: 8.5s
+  code checks: length=2146 chars, has export default, has Tailwind classes, has JSX
+
+SUCCESS — final code:
+
+------------------------------------------------------------
+import { useState } from 'react';
+
+function App() {
+  const [search, setSearch] = useState('');
+
+  const users = [
+    { name: 'Alice Smith', email: 'alice@example.com', role: 'Admin' },
+    { name: 'Bob Jones', email: 'bob@example.com', role: 'Editor' },
+    { name: 'Carol Lee', email: 'carol@example.com', role: 'Viewer' },
+    { name: 'Dan Wu', email: 'dan@example.com', role: 'Editor' },
+  ];
+
+  const filtered = users.filter(
+    (u) =>
+      u.name.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase()) ||
+      u.role.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <section className="container mx-auto p-4 flex flex-col space-y-4">
+      <h1 className="text-2xl font-bold mb-2">Users</h1>
+
+      <input
+        type="text"
+        placeholder="Search..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full md:w-1/2 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+
+      <div className="overflow-x-auto rounded shadow-sm">
+        <table className="w-full table-auto border-collapse bg-white">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2 text-left">Name</th>
+              <th className="p-2 text-left">Email</th>
+              <th className="p-2 text-left">Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((user, idx) => (
+              <tr
+                key={idx}
+                className={`border-t ${idx !== filtered.length - 1 ? '' : ''} hover:bg-gray-50`}
+              >
+                <td className="p-2">{user.name}</td>
+                <td className="p-2">{user.email}</td>
+                <td className="p-2">{user.role}</td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan="3" className="p-2 text-center text-gray-500">
+                  No users found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+export default App;
+------------------------------------------------------------

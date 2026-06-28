@@ -1,0 +1,138 @@
+=== LOGIN ===
+
+============================================================
+SUMMARY
+  sketch: test_sketch.jpg
+  model: claude-haiku-4-5
+  vision_parser latency: 2.58s
+  vision components (4): heading:Login, input:Email, input:Password, button:Sign In
+  screen_title: Login Form
+  vision notes: Simple login form with two input fields (Email and Password) and a centered Sign In button. The heading 'Login' spans the full width at the top. Standard form layout with vertical spacing between elem
+  login accuracy: 4/4 (heading:Login, input:Email, input:Password, button:Sign In)
+  architect tree:
+LoginForm
+  Heading
+  Input (Email)
+  Input (Password)
+  Button (Sign In)
+  architect layout: Mobile‑first Tailwind: wrap the form in a <section className='flex flex-col items-center min-h-screen bg-gray-50 p-4'>. Use a container <div className='w-full max-w-md space-y-6'> to stack elements vertically. Apply gap via space-y-4 for consistent vertical spacing. Heading: text-2xl font-bold text-…
+  auditor latency: 0.58s
+  auditor issues (4): The component works but needs label‑input linking, autocomplete attributes, a semantic <main> wrapper, and optional validation enhancements.
+    1. [warning] Labels are not associated with their inputs, which harms screen‑reader navigation.
+       patch: Add matching id to each input and htmlFor to its label. Example: replace `<label className="...">Email</label>` with `<l…
+    2. [info] Email and password inputs lack autocomplete attributes, reducing form‑fill efficiency.
+       patch: Add `autocomplete="email"` to the email input and `autocomplete="current-password"` to the password input.
+    3. [info] The top‑level container is a <section> but serves as the main content region; <main> is more appropriate.
+       patch: Replace the opening `<section className="flex flex-col items-center min-h-screen bg-gray-50 p-4">` with `<main className…
+    4. [warning] Form inputs have no explicit type for email validation beyond `type="email"`; adding `pattern` can improve client‑side validation.
+       patch: Optionally add a simple pattern, e.g., `pattern="[^@\s]+@[^@\s]+\.[^@\s]+"` to the email input.
+  accessibility latency: 0.48s
+  code_forge checks: length=1641 chars, has export default, has Tailwind classes, has JSX, no aria-*, no trackEvent
+  accessibility checks: length=2686 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+  full pipeline: 5.0s
+  baseline (no audit/a11y): 4.5s
+  added latency: +0.5s (auditor+a11y measured: 1.05s)
+  code checks: length=2686 chars, has export default, has Tailwind classes, has JSX, has aria-*, has trackEvent
+
+SUCCESS — final code:
+
+------------------------------------------------------------
+import { useState } from 'react';
+
+// Simple analytics stub
+function trackEvent(eventName, payload = {}) {
+  console.log('Analytics:', eventName, payload);
+}
+
+function App() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    trackEvent('login_submit', { email });
+    console.log({ email, password });
+    alert(`Email: ${email}\nPassword: ${password}`);
+  };
+
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+    trackEvent('email_change', { value: e.target.value });
+  };
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+    trackEvent('password_change', { value: e.target.value });
+  };
+
+  return (
+    <section
+      className="flex flex-col items-center min-h-screen bg-gray-50 p-4"
+      role="region"
+      aria-label="Login page"
+    >
+      <form
+        className="w-full max-w-md space-y-6"
+        onSubmit={handleSubmit}
+        role="form"
+        aria-labelledby="login-heading"
+      >
+        <h1 id="login-heading" className="text-2xl font-bold text-center">
+          Login
+        </h1>
+
+        <div>
+          <label
+            htmlFor="email-input"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Email
+          </label>
+          <input
+            id="email-input"
+            type="email"
+            value={email}
+            onChange={handleEmailChange}
+            className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="you@example.com"
+            required
+            aria-required="true"
+            aria-label="Email address"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="password-input"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Password
+          </label>
+          <input
+            id="password-input"
+            type="password"
+            value={password}
+            onChange={handlePasswordChange}
+            className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="••••••••"
+            required
+            aria-required="true"
+            aria-label="Password"
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-indigo-600 text-white font-medium py-2 rounded hover:bg-indigo-700 transition"
+          aria-label="Sign in"
+          onClick={() => trackEvent('sign_in_click')}
+        >
+          Sign In
+        </button>
+      </form>
+    </section>
+  );
+}
+
+export default App;
+------------------------------------------------------------
