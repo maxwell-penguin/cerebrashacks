@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 AgentName = Literal[
     "vision_parser",
@@ -186,7 +186,16 @@ class DiffStats(BaseModel):
 class RefineRegionRequest(BaseModel):
     code: str
     region_description: str
-    refinement_request: str
+    refinement_request: str = ""
+    sketch_image_base64: str = ""
+
+    @model_validator(mode="after")
+    def require_at_least_one_input(self) -> "RefineRegionRequest":
+        if not self.refinement_request.strip() and not self.sketch_image_base64.strip():
+            raise ValueError(
+                "At least one of refinement_request or sketch_image_base64 must be provided"
+            )
+        return self
 
 
 class RefineRegionResponse(BaseModel):

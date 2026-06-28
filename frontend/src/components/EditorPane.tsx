@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import Editor from '@monaco-editor/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { AgentState } from '../types';
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
   onChangeCode?: (code: string) => void;
   criticState?: AgentState;
   isRunning?: boolean;
-  refineRegion?: (code: string, regionDescription: string, refinementRequest: string) => Promise<{
+  refineRegion?: (code: string, regionDescription: string, refinementRequest: string, sketchBase64?: string) => Promise<{
     patched_code: string;
     changed_regions_summary: string;
     diff_stats: { lines_changed: number; lines_total: number; change_ratio: number };
@@ -128,13 +128,104 @@ export default function EditorPane({
     summary: string;
   } | null>(null);
 
+  // Draw Mode state
+  const [drawMode, setDrawMode] = useState<'text' | 'draw'>('text');
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [hasStrokes, setHasStrokes] = useState(false);
+  const strokes = useRef<Array<Array<{ x: number; y: number }>>>([]);
+  const isDrawingRef = useRef(false);
+  const currentStroke = useRef<Array<{ x: number; y: number }>>([]);
+
+  const redrawAll = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const stroke of strokes.current) {
+      if (stroke.length < 2) continue;
+      ctx.beginPath();
+      ctx.moveTo(stroke[0].x, stroke[0].y);
+      for (let i = 1; i < stroke.length; i++) ctx.lineTo(stroke[i].x, stroke[i].y);
+      ctx.stroke();
+    }
+  }, []);
+
+  const getCanvasPos = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height),
+    };
+  };
+
+  const startDraw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const pos = getCanvasPos(e);
+    isDrawingRef.current = true;
+    currentStroke.current = [pos];
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  };
+
+  const continueDraw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current) return;
+    const pos = getCanvasPos(e);
+    currentStroke.current.push(pos);
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+  };
+
+  const endDraw = () => {
+    if (!isDrawingRef.current) return;
+    isDrawingRef.current = false;
+    if (currentStroke.current.length > 1) {
+      strokes.current = [...strokes.current, [...currentStroke.current]];
+      setHasStrokes(true);
+    }
+    currentStroke.current = [];
+  };
+
+  const clearCanvas = () => {
+    strokes.current = [];
+    setHasStrokes(false);
+    redrawAll();
+  };
+
+  const undoStroke = () => {
+    if (strokes.current.length === 0) return;
+    strokes.current = strokes.current.slice(0, -1);
+    setHasStrokes(strokes.current.length > 0);
+    redrawAll();
+  };
+
   const handleApplyRefinement = async () => {
-    if (!refineRegion || !refinementText.trim()) return;
+    const hasText = refinementText.trim().length > 0;
+    if (!refineRegion || (!hasText && !hasStrokes)) return;
     setRefinementLoading(true);
     setRefinementError(null);
     setRefinementSuccess(null);
+
+    let sketchBase64: string | undefined;
+    if (hasStrokes && canvasRef.current) {
+      sketchBase64 = canvasRef.current.toDataURL('image/png');
+    }
+
     try {
-      const res = await refineRegion(finalCode, selectedRegion, refinementText);
+      const res = await refineRegion(finalCode, selectedRegion, refinementText, sketchBase64);
       console.log('Refinement result:', res);
       if (res.warning) {
         setPendingRefinement({
@@ -182,7 +273,21 @@ export default function EditorPane({
     setRefinementError(null);
     setRefinementSuccess(null);
     setPendingRefinement(null);
+    setDrawMode('text');
+    strokes.current = [];
+    setHasStrokes(false);
   }, [isDesignMode]);
+
+  useEffect(() => {
+    if (drawMode !== 'draw') return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    redrawAll();
+  }, [drawMode, redrawAll]);
 
   // when finalCode arrives, build preview and auto-switch
   useEffect(() => {
@@ -556,6 +661,49 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               </div>
             )}
 
+            {/* Canvas panel — shown when draw mode is active */}
+            {drawMode === 'draw' && (
+              <div className="bg-white border-t border-slate-200 shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+                <div className="flex items-center justify-between px-3 py-1 border-b border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Draw your change
+                    {hasStrokes && (
+                      <span className="ml-2 font-normal normal-case text-indigo-500">
+                        {strokes.current.length} stroke{strokes.current.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={undoStroke}
+                      disabled={!hasStrokes}
+                      className="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-40 transition-colors"
+                    >
+                      Undo
+                    </button>
+                    <button
+                      onClick={clearCanvas}
+                      disabled={!hasStrokes}
+                      className="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-40 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                <canvas
+                  ref={canvasRef}
+                  width={1200}
+                  height={160}
+                  className="w-full h-40 cursor-crosshair touch-none block"
+                  style={{ background: '#fff' }}
+                  onMouseDown={startDraw}
+                  onMouseMove={continueDraw}
+                  onMouseUp={endDraw}
+                  onMouseLeave={endDraw}
+                />
+              </div>
+            )}
+
             {/* Main toolbar row */}
             <div className="bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-2px_12px_rgba(0,0,0,0.08)] px-3 py-2 flex items-center gap-2">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-1">
@@ -574,12 +722,30 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <option value="Footer">Footer</option>
               </select>
 
+              {/* Describe / Draw toggle */}
+              <div className="flex rounded border border-slate-200 overflow-hidden shrink-0">
+                <button
+                  onClick={() => setDrawMode('text')}
+                  disabled={refinementLoading || !!pendingRefinement}
+                  className={`text-[10px] px-2 py-1 font-semibold transition-colors ${drawMode === 'text' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                >
+                  Describe
+                </button>
+                <button
+                  onClick={() => setDrawMode('draw')}
+                  disabled={refinementLoading || !!pendingRefinement}
+                  className={`text-[10px] px-2 py-1 font-semibold border-l border-slate-200 transition-colors ${drawMode === 'draw' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                >
+                  ✏️ Draw
+                </button>
+              </div>
+
               <input
                 type="text"
                 value={refinementText}
                 onChange={e => setRefinementText(e.target.value)}
                 disabled={refinementLoading || !!pendingRefinement}
-                placeholder="Describe the change you want…"
+                placeholder={drawMode === 'draw' ? 'Optional: add context for your drawing…' : 'Describe the change you want…'}
                 className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-slate-800 focus:outline-none focus:border-indigo-500 min-w-0"
               />
 
@@ -594,7 +760,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
               <button
                 onClick={handleApplyRefinement}
-                disabled={refinementLoading || !refinementText.trim() || !!pendingRefinement}
+                disabled={refinementLoading || !!pendingRefinement || (!refinementText.trim() && !hasStrokes)}
                 className="text-xs px-3 py-1 rounded font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-sm flex items-center gap-1.5 shrink-0"
               >
                 {refinementLoading ? (

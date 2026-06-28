@@ -433,7 +433,7 @@ export function usePipeline(wsUrl: string) {
   );
 
   const refineRegion = useCallback(
-    async (code: string, regionDescription: string, refinementRequest: string) => {
+    async (code: string, regionDescription: string, refinementRequest: string, sketchBase64?: string) => {
       const res = await fetch(`${apiBase}/refine-region`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -441,6 +441,7 @@ export function usePipeline(wsUrl: string) {
           code,
           region_description: regionDescription,
           refinement_request: refinementRequest,
+          sketch_image_base64: sketchBase64 ?? '',
         }),
       });
       if (!res.ok) {

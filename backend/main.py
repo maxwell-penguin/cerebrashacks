@@ -336,10 +336,58 @@ async def refine_region(body: RefineRegionRequest) -> RefineRegionResponse:
     client = get_client()
 
     try:
+        from parsing import extract_json
+
+        # --- Sketch input: run Vision Parser if a drawing was provided ---
+        sketch_description = ""
+        if body.sketch_image_base64.strip():
+            from agent_prompts import VISION_PARSER_SYSTEM, VISION_PARSER_USER
+            from vision_client import call_vision_json
+
+            b64 = body.sketch_image_base64
+            if "," in b64:
+                b64 = b64.split(",", 1)[1]
+            image_bytes = base64.b64decode(b64)
+
+            raw_vision = await asyncio.wait_for(
+                asyncio.to_thread(
+                    call_vision_json,
+                    VISION_PARSER_SYSTEM,
+                    VISION_PARSER_USER.format(description_extra=""),
+                    image_bytes,
+                    "image/png",
+                ),
+                timeout=25.0,
+            )
+            vision_data = extract_json(raw_vision)
+            from schemas import VisionParseResult
+            vision = VisionParseResult.model_validate(vision_data)
+
+            if vision.components:
+                comp_lines = []
+                for c in vision.components:
+                    cx = c.x + c.width / 2
+                    cy = c.y + c.height / 2
+                    horiz = "right" if cx > 0.66 else ("left" if cx < 0.33 else "center")
+                    vert = "bottom" if cy > 0.66 else ("top" if cy < 0.33 else "middle")
+                    pos = f"{vert}-{horiz}" if vert != "middle" or horiz != "center" else "center"
+                    label = f' labeled "{c.label}"' if c.label else ""
+                    comp_lines.append(f"a {c.type}{label} at {pos}")
+                sketch_description = "The user drew: " + ", ".join(comp_lines) + "."
+
+        # --- Build the combined refinement instruction ---
+        text_req = body.refinement_request.strip()
+        if text_req and sketch_description:
+            combined_request = f"{text_req}\n\nVisual sketch context: {sketch_description}"
+        elif sketch_description:
+            combined_request = sketch_description
+        else:
+            combined_request = text_req
+
         user_text = REFINE_REGION_USER.format(
             code=body.code,
             region_description=body.region_description,
-            refinement_request=body.refinement_request,
+            refinement_request=combined_request,
         )
         messages = build_text_messages(REFINE_REGION_SYSTEM, user_text)
 
@@ -371,14 +419,15 @@ async def refine_region(body: RefineRegionRequest) -> RefineRegionResponse:
         lines_total = len(original_lines)
         if lines_total == 0:
             lines_total = 1
-        
+
         change_ratio = lines_changed / lines_total
 
         warning = None
         if change_ratio > 0.4:
             warning = "This change affected more of the code than expected — review before keeping it."
 
-        changed_regions_summary = f"Refined the {body.region_description} to: {body.refinement_request}"
+        input_summary = body.refinement_request.strip() or sketch_description
+        changed_regions_summary = f"Refined the {body.region_description}: {input_summary}"
 
         return RefineRegionResponse(
             patched_code=patched_code,
