@@ -73,7 +73,16 @@ Rules:
   1. The default App component should render a common layout (e.g. sidebar or navbar) wrapping a <BrowserRouter> and <Routes>.
   2. Each route path in the `routes` list must map to a separate screen component defined inside this same file.
   3. Ensure sidebar or navigation elements use real <Link to="/path"> tags instead of dead hrefs (e.g., href="#").
-  4. If `routes` contains only one route or is empty, DO NOT use React Router. Just output a single standard App component as a single-screen page (maintaining legacy behavior byte-for-byte).
+  4. NON-HOME ROUTES MUST HAVE REAL CONTENT — never an empty div or placeholder comment. Derive each screen's content from its route label:
+     - A path like /settings or /preferences → a card with 3-4 labeled settings rows (each row: a label on the left, a toggle or input on the right).
+     - A path like /analytics or /stats or /reports → 2-3 stat cards showing mock numbers, plus a simple bar-chart or line-chart placeholder (a row of colored divs of varying heights works fine).
+     - A path like /users or /team or /members → a small table or list of 3-4 mock user rows (name, role, status badge).
+     - A path like /profile or /account → an avatar circle + a small form with name/email fields and a Save button.
+     - A path like /inbox or /messages → 3-4 message-preview rows (sender name, subject, short preview, timestamp).
+     - Any other path → a heading matching the label + 2-3 relevant cards or list items appropriate to the concept.
+     Each non-home screen must have a clear page heading (h1 or h2) matching the route label, plus those content elements.
+  5. The home/index route (usually "/") should use the full sketch-derived layout from the Vision Parser and architecture plan — that remains detailed and unchanged.
+  6. If `routes` contains only one route or is empty, DO NOT use React Router. Just output a single standard App component as a single-screen page (maintaining legacy behavior byte-for-byte).
 - Return ONLY the JSX/code — no markdown fences, no explanation before or after."""
 
 CODE_FORGE_USER = """Generate the complete React component for this app.
