@@ -194,9 +194,9 @@ function Studio() {
       </header>
 
       {/* Three-pane layout */}
-      <div className="flex flex-1" style={{ overflow: 'clip' }}>
+      <div className="flex flex-1 p-3 bg-slate-100 min-h-0 overflow-hidden" style={{ overflow: 'hidden' }}>
         {/* Left: upload + vision overlay */}
-        <div className="shrink-0 overflow-hidden" style={{ width: leftPanel.value }}>
+        <div className="shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden flex flex-col" style={{ width: leftPanel.value }}>
           <UploadPane
             inputMode={inputMode}
             setInputMode={setInputMode}
@@ -212,11 +212,13 @@ function Studio() {
         {/* Resize handle: left | center */}
         <div
           {...leftPanel.handleProps}
-          className="w-1 shrink-0 bg-slate-200 hover:bg-indigo-400 cursor-col-resize transition-colors active:bg-indigo-500 z-20"
-        />
+          className="w-3 shrink-0 cursor-col-resize group flex items-center justify-center select-none z-20"
+        >
+          <div className="w-[2px] h-10 rounded bg-slate-300/80 group-hover:bg-indigo-500 group-active:bg-indigo-600 transition-all" />
+        </div>
 
         {/* Center: Monaco editor + iframe preview */}
-        <div className="flex-1 overflow-hidden min-w-0">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden flex flex-col min-w-0">
           <EditorPane
             streamingCode={state.streamingCode}
             finalCode={state.finalCode}
@@ -233,11 +235,13 @@ function Studio() {
         {/* Resize handle: center | right sidebar */}
         <div
           {...rightPanel.handleProps}
-          className="w-1 shrink-0 bg-slate-200 hover:bg-indigo-400 cursor-col-resize transition-colors active:bg-indigo-500 z-20"
-        />
+          className="w-3 shrink-0 cursor-col-resize group flex items-center justify-center select-none z-20"
+        >
+          <div className="w-[2px] h-10 rounded bg-slate-300/80 group-hover:bg-indigo-500 group-active:bg-indigo-600 transition-all" />
+        </div>
 
         {/* Right: agent columns + chat/issues */}
-        <div className="shrink-0 border-l border-slate-200 flex flex-col bg-slate-100" style={{ width: rightPanel.value }}>
+        <div className="shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden flex flex-col" style={{ width: rightPanel.value }}>
           <div className="flex-1 min-h-0 overflow-hidden">
             <AgentColumns
               agents={state.agents}
