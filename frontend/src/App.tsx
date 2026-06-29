@@ -153,12 +153,9 @@ function Studio() {
             </div>
             <span className="text-[9px] text-slate-400 font-medium tracking-wide mt-1.5">Sketch it. Watch six AI agents build it live.</span>
           </div>
-          <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 flex items-center gap-1 shrink-0">
-            ⚡ Powered by Gemma 4 31B on Cerebras
-          </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {(isDone || isError) && (
             <button
               onClick={handleReset}
@@ -177,6 +174,10 @@ function Studio() {
           >
             {isRunning ? 'Running…' : 'Generate'}
           </button>
+
+          <span className="text-[9px] text-slate-400 font-medium hidden sm:inline select-none">
+            Powered by Gemma 4 31B on Cerebras
+          </span>
         </div>
 
         {/* Status badge */}
@@ -225,7 +226,7 @@ function Studio() {
         </div>
 
         {/* Center: Monaco editor + iframe preview */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden flex flex-col min-w-0">
+        <div className="flex-1 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.10)] border border-slate-300/70 overflow-hidden flex flex-col min-w-0">
           <EditorPane
             streamingCode={state.streamingCode}
             finalCode={state.finalCode}
@@ -248,7 +249,7 @@ function Studio() {
         </div>
 
         {/* Right: agent columns + chat/issues */}
-        <div className="shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden flex flex-col" style={{ width: rightPanel.value }}>
+        <div className="shrink-0 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.10)] border border-slate-300/70 overflow-hidden flex flex-col" style={{ width: rightPanel.value }}>
           <div className="flex-1 min-h-0 overflow-hidden">
             <AgentColumns
               agents={state.agents}
