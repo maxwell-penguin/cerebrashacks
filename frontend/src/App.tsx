@@ -142,9 +142,16 @@ function Studio() {
       {/* Header */}
       <header className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-white border-b border-slate-200 shadow-sm z-10">
         <div className="flex items-center gap-3">
-          <div className="flex flex-col leading-tight">
-            <span className="text-lg font-bold tracking-tight text-slate-800">⚡ SketchStorm Studio</span>
-            <span className="text-[10px] text-slate-400 font-medium tracking-wide">Sketch it. Watch six AI agents build it live.</span>
+          <div className="flex flex-col leading-none">
+            <div className="flex items-baseline gap-1.5 select-none">
+              <span className="text-lg font-black tracking-tight bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent">
+                SketchStorm
+              </span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em]">
+                Studio
+              </span>
+            </div>
+            <span className="text-[9px] text-slate-400 font-medium tracking-wide mt-1.5">Sketch it. Watch six AI agents build it live.</span>
           </div>
           <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 flex items-center gap-1 shrink-0">
             ⚡ Powered by Gemma 4 31B on Cerebras

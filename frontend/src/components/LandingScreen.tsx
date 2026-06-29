@@ -39,9 +39,13 @@ export default function LandingScreen({ onGetStarted }: Props) {
 
       {/* Nav */}
       <nav className="relative z-10 flex items-center justify-between px-8 py-5 shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-base font-extrabold tracking-tight text-slate-800">⚡ SketchStorm</span>
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-mono">Studio</span>
+        <div className="flex items-baseline gap-1.5 select-none">
+          <span className="text-lg font-black tracking-tight bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent">
+            SketchStorm
+          </span>
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em]">
+            Studio
+          </span>
         </div>
         <a
           href="https://cerebras.ai"
