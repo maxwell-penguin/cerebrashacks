@@ -227,6 +227,14 @@ async def run_architect(
 ) -> ArchitectResult:
     await _emit_status(emit, "architect", "thinking", "Designing component tree…")
 
+    import os
+    architect_provider = os.environ.get("ARCHITECT_PROVIDER", "cerebras").lower()
+    if architect_provider == "gemma":
+        model_name = os.environ.get("CEREBRAS_VISION_MODEL", "gemma-4-31b")
+        architect_client = CerebrasClient(model=model_name)
+    else:
+        architect_client = client
+
     if vision is not None:
         user = ARCHITECT_USER.format(
             description=description or "Mobile-first, clean modern UI",
@@ -237,8 +245,8 @@ async def run_architect(
             description=description or "Mobile-first, clean modern UI",
         )
     messages = build_text_messages(ARCHITECT_SYSTEM, user)
-    raw = await client.acall(messages, max_tokens=2048, temperature=0.2)
-    data = await extract_json_with_repair(raw, client)
+    raw = await architect_client.acall(messages, max_tokens=2048, temperature=0.2)
+    data = await extract_json_with_repair(raw, architect_client)
     result = ArchitectResult.model_validate(data)
 
     await emit({"type": "agent_output", "agent": "architect", "output": result.model_dump()})
