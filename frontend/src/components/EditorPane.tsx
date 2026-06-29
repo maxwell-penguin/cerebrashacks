@@ -16,6 +16,7 @@ interface Props {
     warning: string | null;
   }>;
   cancelRefine?: () => void;
+  onDesignEdit?: (region: string, prompt: string, mode: string) => void;
   errorMsg?: string;
 }
 
@@ -105,6 +106,7 @@ export default function EditorPane({
   isRunning,
   refineRegion,
   cancelRefine,
+  onDesignEdit,
   errorMsg,
 }: Props) {
   const [tab, setTab] = useState<Tab>('editor');
@@ -250,6 +252,7 @@ export default function EditorPane({
           summary: res.changed_regions_summary,
         });
         setRefinementText('');
+        onDesignEdit?.(selectedRegion, refinementText || '(sketch)', drawMode);
       }
     } catch (err: any) {
       if (err instanceof DOMException && err.name === 'AbortError') {

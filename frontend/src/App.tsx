@@ -6,6 +6,7 @@ import LandingScreen from './components/LandingScreen';
 import UploadPane from './components/UploadPane';
 import IssuesPanel from './components/IssuesPanel';
 import HistoryBar, { RunHistoryItem } from './components/HistoryBar';
+import DesignHistory from './components/DesignHistory';
 import { usePipeline } from './hooks/usePipeline';
 import { useResize } from './hooks/useResize';
 
@@ -37,12 +38,26 @@ function Studio() {
   } = usePipeline(WS_URL);
   const [description, setDescription] = useState('');
   const [pendingImage, setPendingImage] = useState<{ base64: string; mime: string } | null>(null);
-  const [rightTab, setRightTab] = useState<'issues' | 'chat'>('chat');
+  const [rightTab, setRightTab] = useState<'issues' | 'chat' | 'history'>('chat');
   const [inputMode, setInputMode] = useState<'sketch' | 'text'>('sketch');
   
   const [history, setHistory] = useState<RunHistoryItem[]>([]);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
   const isRecordingRun = useRef<boolean>(false);
+
+  // Design edit history
+  const [designEdits, setDesignEdits] = useState<Array<{
+    id: string;
+    region: string;
+    prompt: string;
+    mode: string;
+    time: string;
+  }>>([]);
+  const addDesignEdit = useCallback((region: string, prompt: string, mode: string) => {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setDesignEdits(prev => [{ id: `edit-${Date.now()}`, region, prompt, mode, time }, ...prev]);
+  }, []);
 
   // Resizable panels
   const leftPanel = useResize(288, 200, 500, 'x');   // default 288px (w-72)
@@ -209,6 +224,7 @@ function Studio() {
             isRunning={isRunning}
             refineRegion={refineRegion}
             cancelRefine={cancelOperation}
+            onDesignEdit={addDesignEdit}
             errorMsg={state.errorMsg}
           />
         </div>
@@ -267,9 +283,24 @@ function Studio() {
                   {state.issues.length}
                 </span>
               </button>
+              <button
+                onClick={() => setRightTab('history')}
+                className={`flex-1 text-[11px] font-bold py-2 transition-colors uppercase tracking-wider flex items-center justify-center gap-1.5 ${
+                  rightTab === 'history'
+                    ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white font-extrabold'
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <span>🕒 History</span>
+                <span className="text-[9px] font-mono px-1 rounded-full bg-slate-200 text-slate-600">
+                  {designEdits.length}
+                </span>
+              </button>
             </div>
             <div className="flex-1 min-h-0 overflow-hidden">
-              {rightTab === 'issues' ? (
+              {rightTab === 'history' ? (
+                <DesignHistory edits={designEdits} />
+              ) : rightTab === 'issues' ? (
                 <IssuesPanel issues={state.issues} />
               ) : (
                 <ChatPanel
