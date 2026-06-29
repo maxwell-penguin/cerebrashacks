@@ -3,4 +3,5 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
+startCommand = "/app/entrypoint.sh"
 healthcheckPath = "/health"
