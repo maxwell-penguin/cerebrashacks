@@ -36,6 +36,17 @@ sketch photo → vision_parser → architect → code_forge → auditor → acce
 
 Full API and event shapes: [`backend/API.md`](backend/API.md).
 
+## Deployed Demo
+
+**Try it now:** [cerebrashacks.vercel.app](https://cerebrashacks.vercel.app)
+
+The frontend is deployed on Vercel; the backend runs on Railway. Upload a sketch or type a description and six AI agents will generate a live React app.
+
+| Layer | Platform | URL |
+|-------|----------|-----|
+| Frontend | Vercel | [cerebrashacks.vercel.app](https://cerebrashacks.vercel.app) |
+| Backend | Railway | `cerebrashacks-production.up.railway.app` |
+
 ## Run locally
 
 **Prerequisites:** Python 3.11+, Node 18+, `CEREBRAS_API_KEY`, and `ANTHROPIC_API_KEY` (vision is Anthropic today).
