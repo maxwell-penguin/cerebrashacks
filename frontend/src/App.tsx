@@ -8,7 +8,8 @@ import IssuesPanel from './components/IssuesPanel';
 import HistoryBar, { RunHistoryItem } from './components/HistoryBar';
 import { usePipeline } from './hooks/usePipeline';
 
-const WS_URL = 'ws://localhost:8000/ws';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const WS_URL = API_BASE.replace(/^http/, 'ws') + '/ws';
 
 export default function App() {
   const [showLanding, setShowLanding] = useState(true);
