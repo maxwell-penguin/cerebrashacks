@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import Editor from '@monaco-editor/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Copy, Palette, AlertTriangle, Code2, Check } from 'lucide-react';
 import type { AgentState } from '../types';
 
 interface Props {
@@ -509,8 +510,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               onClick={() => setIsDesignMode(!isDesignMode)}
               className={`text-xs px-2.5 py-1 rounded border font-semibold flex items-center gap-1.5 transition-all ${isDesignMode ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             >
+              <Palette className="w-3.5 h-3.5" />
+              <span>Design Mode</span>
               <span className={`w-1.5 h-1.5 rounded-full ${isDesignMode ? 'bg-indigo-600 animate-pulse' : 'bg-slate-400'}`} />
-              🎨 Design Mode
             </button>
           )}
         </div>
@@ -558,8 +560,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <div className={`overflow-hidden ${tab === 'editor' ? 'absolute inset-0 flex flex-col' : 'hidden'}`}>
           {errorMsg ? (
             <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 text-center select-none animate-fade-in">
-              <div className="max-w-md bg-white rounded-xl border border-slate-200 p-6 shadow-md">
-                <div className="text-4xl mb-3">⚠️</div>
+              <div className="max-w-md bg-white rounded-xl border border-slate-200 p-6 shadow-md flex flex-col items-center">
+                <AlertTriangle className="w-8 h-8 text-rose-500 mb-3" />
                 <h3 className="text-base font-bold text-slate-800 mb-2">Generation Stopped</h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
                   {errorMsg}
@@ -608,13 +610,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                              shadow-sm flex items-center gap-1.5 active:scale-[0.97]"
                 >
                   {copied ? (
-                    <>
-                      <span className="text-emerald-600">✓</span> Copied!
-                    </>
+                    <div className="flex items-center gap-1 text-emerald-600">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Copied!</span>
+                    </div>
                   ) : (
-                    <>
-                      <span>📋</span> Copy code
-                    </>
+                    <div className="flex items-center gap-1 text-slate-600">
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy code</span>
+                    </div>
                   )}
                 </button>
               </div>
@@ -632,7 +636,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                   </div>
                 </div>
               ) : (
-                <span className="text-sm text-slate-400">Waiting for code generation…</span>
+                <div className="flex flex-col items-center gap-2 text-slate-400 select-none">
+                  <Code2 className="w-8 h-8 text-slate-300 animate-pulse" />
+                  <span className="text-sm">Waiting for code generation…</span>
+                </div>
               )}
             </div>
           )}

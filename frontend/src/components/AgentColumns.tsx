@@ -1,13 +1,21 @@
 import { useState } from 'react';
+import {
+  Eye,
+  LayoutGrid,
+  Zap,
+  Search,
+  Accessibility,
+  Sparkles,
+} from 'lucide-react';
 import type { AgentMap, AgentName, AgentStatus, UnifiedIssue } from '../types';
 
-const AGENTS: { name: AgentName; label: string; icon: string }[] = [
-  { name: 'vision_parser', label: 'Vision', icon: '👁' },
-  { name: 'architect', label: 'Architect', icon: '🏗' },
-  { name: 'code_forge', label: 'Code Forge', icon: '⚡' },
-  { name: 'auditor', label: 'Auditor', icon: '🔍' },
-  { name: 'accessibility', label: 'A11y', icon: '♿' },
-  { name: 'vision_critic', label: 'Critic', icon: '🎨' },
+const AGENTS: { name: AgentName; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { name: 'vision_parser', label: 'Vision', icon: Eye },
+  { name: 'architect', label: 'Architect', icon: LayoutGrid },
+  { name: 'code_forge', label: 'Code Forge', icon: Zap },
+  { name: 'auditor', label: 'Auditor', icon: Search },
+  { name: 'accessibility', label: 'A11y', icon: Accessibility },
+  { name: 'vision_critic', label: 'Critic', icon: Sparkles },
 ];
 
 const STATUS_CONFIG: Record<AgentStatus, { bg: string; text: string; label: string; pulse: boolean }> = {
@@ -74,17 +82,17 @@ export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRef
         {allIdle ? (
           <div className="rounded-lg border border-slate-200 bg-white shadow-sm px-3 py-3">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">6 agents ready</p>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              {AGENTS.map(({ label }, i) => (
-                <span key={label}>
-                  <span className="font-semibold text-slate-700">{label}</span>
-                  {i < AGENTS.length - 1 && <span className="text-slate-300 mx-1">·</span>}
-                </span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mt-1">
+              {AGENTS.map(({ label, icon: Icon }) => (
+                <div key={label} className="flex items-center gap-1.5 text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-semibold shadow-sm">
+                  <Icon className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{label}</span>
+                </div>
               ))}
-            </p>
+            </div>
           </div>
         ) : null}
-        {AGENTS.map(({ name, label, icon }) => {
+        {AGENTS.map(({ name, label, icon: Icon }) => {
           if (allIdle) return null;
           const { status, message } = agents[name];
           const cfg = STATUS_CONFIG[status];
@@ -102,7 +110,7 @@ export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRef
                 className="w-full flex items-center justify-between px-3 py-2 text-left"
               >
                 <span className="text-sm font-semibold flex items-center gap-1.5">
-                  <span>{icon}</span>
+                  <Icon className="w-4 h-4 text-slate-500" />
                   <span className="text-slate-800">{label}</span>
                 </span>
                 <div className="flex items-center gap-1.5">

@@ -1,12 +1,23 @@
 import React from 'react';
+import {
+  PenLine,
+  Bot,
+  Code2,
+  Eye,
+  LayoutGrid,
+  Zap,
+  Search,
+  Accessibility,
+  Sparkles,
+} from 'lucide-react';
 
-const AGENTS: { icon: string; name: string; bg: string; border: string; text: string }[] = [
-  { icon: '👁',  name: 'Vision',     bg: 'bg-violet-50',  border: 'border-violet-200',  text: 'text-violet-700'  },
-  { icon: '🏗',  name: 'Architect',  bg: 'bg-blue-50',    border: 'border-blue-200',    text: 'text-blue-700'    },
-  { icon: '⚡',  name: 'Code Forge', bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-700'   },
-  { icon: '🔍',  name: 'Auditor',    bg: 'bg-rose-50',    border: 'border-rose-200',    text: 'text-rose-700'    },
-  { icon: '♿',  name: 'A11y',       bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700' },
-  { icon: '🎨',  name: 'Critic',     bg: 'bg-fuchsia-50', border: 'border-fuchsia-200', text: 'text-fuchsia-700' },
+const AGENTS: { icon: React.ComponentType<{ className?: string }>; name: string; bg: string; border: string; text: string }[] = [
+  { icon: Eye,           name: 'Vision',     bg: 'bg-violet-50',  border: 'border-violet-200',  text: 'text-violet-700'  },
+  { icon: LayoutGrid,    name: 'Architect',  bg: 'bg-blue-50',    border: 'border-blue-200',    text: 'text-blue-700'    },
+  { icon: Zap,           name: 'Code Forge', bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-700'   },
+  { icon: Search,        name: 'Auditor',    bg: 'bg-rose-50',    border: 'border-rose-200',    text: 'text-rose-700'    },
+  { icon: Accessibility, name: 'A11y',       bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700' },
+  { icon: Sparkles,      name: 'Critic',     bg: 'bg-fuchsia-50', border: 'border-fuchsia-200', text: 'text-fuchsia-700' },
 ];
 
 interface Props {
@@ -46,7 +57,7 @@ export default function LandingScreen({ onGetStarted }: Props) {
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center pb-12">
 
         {/* Cerebras badge — unmissable */}
-        <div className="mb-7 inline-flex items-center gap-2.5 bg-amber-50 border border-amber-300 text-amber-800 px-5 py-2.5 rounded-full shadow-sm">
+        <div className="mb-4 inline-flex items-center gap-2.5 bg-amber-50 border border-amber-300 text-amber-800 px-5 py-2.5 rounded-full shadow-sm">
           <span className="text-base leading-none">⚡</span>
           <span className="text-sm font-bold tracking-tight">Powered by Gemma 4 31B on Cerebras</span>
           <span className="text-amber-400 text-xs font-semibold hidden sm:inline">· ~1 000 tok/s</span>
@@ -70,17 +81,17 @@ export default function LandingScreen({ onGetStarted }: Props) {
         {/* 3-step flow */}
         <div className="flex items-center gap-2 sm:gap-3 mb-10 flex-wrap justify-center">
           <div className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-600 font-medium shadow-sm">
-            <span>✏️</span>
+            <PenLine className="w-4 h-4 text-slate-500" />
             <span>Your sketch</span>
           </div>
           <span className="text-slate-300 font-bold text-lg">→</span>
           <div className="flex items-center gap-2 px-3.5 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-sm text-indigo-700 font-medium shadow-sm">
-            <span>🤖</span>
+            <Bot className="w-4 h-4 text-indigo-500" />
             <span>6-agent pipeline</span>
           </div>
           <span className="text-slate-300 font-bold text-lg">→</span>
           <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-medium shadow-sm">
-            <span>⚛️</span>
+            <Code2 className="w-4 h-4 text-emerald-500" />
             <span>Working React app</span>
           </div>
         </div>
@@ -88,7 +99,7 @@ export default function LandingScreen({ onGetStarted }: Props) {
         {/* CTA */}
         <button
           onClick={onGetStarted}
-          className="group mb-16 px-9 py-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-base font-bold rounded-xl shadow-lg hover:shadow-indigo-200 hover:shadow-xl transition-all duration-150 flex items-center gap-2"
+          className="group mb-8 px-9 py-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-base font-bold rounded-xl shadow-lg hover:shadow-indigo-200 hover:shadow-xl transition-all duration-150 flex items-center gap-2"
         >
           Get Started
           <span className="transition-transform duration-150 group-hover:translate-x-1 inline-block">→</span>
@@ -105,7 +116,7 @@ export default function LandingScreen({ onGetStarted }: Props) {
                 <div
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold shadow-sm ${agent.bg} ${agent.border} ${agent.text}`}
                 >
-                  <span>{agent.icon}</span>
+                  <agent.icon className="w-3.5 h-3.5" />
                   <span>{agent.name}</span>
                 </div>
                 {i < AGENTS.length - 1 && (

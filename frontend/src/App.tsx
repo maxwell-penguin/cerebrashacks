@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { MessageSquare, AlertTriangle, Clock } from 'lucide-react';
 import AgentColumns from './components/AgentColumns';
 import ChatPanel from './components/ChatPanel';
 import EditorPane from './components/EditorPane';
@@ -266,7 +267,10 @@ function Studio() {
                     : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
                 }`}
               >
-                💬 Co-pilot
+                <div className="flex items-center justify-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Co-pilot</span>
+                </div>
               </button>
               <button
                 onClick={() => setRightTab('issues')}
@@ -276,12 +280,15 @@ function Studio() {
                     : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
                 }`}
               >
-                <span>⚠️ Issues</span>
-                <span className={`text-[9px] font-mono px-1 rounded-full ${
-                  state.issues.length > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  {state.issues.length}
-                </span>
+                <div className="flex items-center justify-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Issues</span>
+                  {state.issues.length > 0 && (
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
+                      {state.issues.length}
+                    </span>
+                  )}
+                </div>
               </button>
               <button
                 onClick={() => setRightTab('history')}
@@ -291,10 +298,15 @@ function Studio() {
                     : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
                 }`}
               >
-                <span>🕒 History</span>
-                <span className="text-[9px] font-mono px-1 rounded-full bg-slate-200 text-slate-600">
-                  {designEdits.length}
-                </span>
+                <div className="flex items-center justify-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>History</span>
+                  {designEdits.length > 0 && (
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600 font-bold">
+                      {designEdits.length}
+                    </span>
+                  )}
+                </div>
               </button>
             </div>
             <div className="flex-1 min-h-0 overflow-hidden">

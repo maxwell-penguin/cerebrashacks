@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Image, FileText, ImagePlus, AlertTriangle } from 'lucide-react';
 import type { VisionComponent, VisionParseResult } from '../types';
 
 interface Props {
@@ -84,7 +85,10 @@ export default function UploadPane({
               : 'text-slate-500 hover:text-slate-800'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          🖼️ Sketch
+          <div className="flex items-center justify-center gap-1.5">
+            <Image className="w-3.5 h-3.5" />
+            <span>Sketch</span>
+          </div>
         </button>
         <button
           type="button"
@@ -96,7 +100,10 @@ export default function UploadPane({
               : 'text-slate-500 hover:text-slate-800'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          ✍️ Describe
+          <div className="flex items-center justify-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" />
+            <span>Describe</span>
+          </div>
         </button>
       </div>
 
@@ -160,7 +167,7 @@ export default function UploadPane({
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                  <div className="text-4xl mb-3">✏️</div>
+                  <ImagePlus className="w-8 h-8 text-slate-400 mb-3" />
                   <p className="text-sm text-slate-700 font-semibold">Drop your sketch here</p>
                   <p className="text-xs text-slate-400 mt-1">or click to browse</p>
                 </div>
@@ -177,7 +184,7 @@ export default function UploadPane({
 
             {error && (
               <div className="text-rose-500 text-xs font-semibold px-2.5 py-1.5 bg-rose-50 border border-rose-100 rounded-lg flex items-center gap-1.5 shadow-sm">
-                <span>⚠️</span>
+                <AlertTriangle className="w-3.5 h-3.5" />
                 <span>{error}</span>
               </div>
             )}
@@ -208,7 +215,7 @@ export default function UploadPane({
               disabled={disabled}
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="e.g. fintech app layout, dark theme, add a balance chart area…"
+              placeholder="e.g. dark theme, add a chart..."
               className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800
                          placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-1
                          focus:ring-indigo-400 transition-all shadow-sm disabled:opacity-50"

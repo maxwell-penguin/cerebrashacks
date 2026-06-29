@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AlertTriangle, Sparkles } from 'lucide-react';
 import type { UnifiedIssue } from '../types';
 
 interface Props {
@@ -38,8 +39,13 @@ export default function IssuesPanel({ issues }: Props) {
         className="w-full flex items-center justify-between px-3.5 py-2.5 bg-slate-200/50 hover:bg-slate-200/80 border-b border-slate-200 transition-colors select-none text-left shadow-sm z-10"
       >
         <div className="flex items-center gap-2">
+          {issues.length > 0 ? (
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          ) : (
+            <Sparkles className="w-4 h-4 text-emerald-500" />
+          )}
           <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-            {issues.length > 0 ? '⚠️' : '✨'} Issues
+            Issues
           </span>
           <span className={`text-[10px] font-semibold font-mono px-1.5 py-0.5 rounded border ${
             issues.length > 0
@@ -59,7 +65,7 @@ export default function IssuesPanel({ issues }: Props) {
         <div className="flex-1 overflow-y-auto max-h-72 p-3 space-y-3 min-h-0 bg-slate-50">
           {issues.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-6 text-center text-slate-450">
-              <span className="text-2xl mb-1.5 animate-bounce">✨</span>
+              <Sparkles className="w-6 h-6 text-emerald-400 mb-1.5 animate-pulse" />
               <p className="text-xs font-bold text-slate-700">No issues found</p>
               <p className="text-[10px] text-slate-400 mt-0.5">Clean build & visual QA!</p>
             </div>
