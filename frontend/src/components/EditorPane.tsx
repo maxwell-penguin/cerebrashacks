@@ -815,7 +815,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 value={refinementText}
                 onChange={e => setRefinementText(e.target.value)}
                 disabled={refinementLoading || !!pendingRefinement}
-                placeholder={drawMode === 'draw' ? 'Optional: add context for your drawing…' : drawMode === 'upload' ? 'Describe the change based on your uploaded sketch…' : 'Describe the change you want…'}
+                placeholder={
+                  drawMode === 'draw'
+                    ? 'Optional: e.g. dark theme, add a transaction list card...'
+                    : drawMode === 'upload'
+                    ? 'e.g. change the card titles to "Active Balance" and "Monthly Revenue"...'
+                    : 'e.g. add a profile avatar button on the header bar...'
+                }
                 className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-slate-800 focus:outline-none focus:border-indigo-500 min-w-0"
               />
 

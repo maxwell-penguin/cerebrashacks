@@ -242,7 +242,16 @@ async def run_architect(
     result = ArchitectResult.model_validate(data)
 
     await emit({"type": "agent_output", "agent": "architect", "output": result.model_dump()})
-    await _emit_status(emit, "architect", "done", "Architecture ready")
+    lines = [line.strip().strip("-*").strip() for line in result.component_tree.split("\n") if line.strip()]
+    cleaned = [l for l in lines if l]
+    if len(cleaned) > 1:
+        tree_summary = ", ".join(cleaned[:4])
+        if len(cleaned) > 4:
+            tree_summary += "..."
+        status_msg = f"Mapped: {tree_summary}"
+    else:
+        status_msg = "Architecture ready"
+    await _emit_status(emit, "architect", "done", status_msg)
     return result
 
 
@@ -286,7 +295,8 @@ async def run_code_forge(
 
     code = extract_code("".join(parts))
     await emit({"type": "final_code", "code": code})
-    await _emit_status(emit, "code_forge", "done", "Code generation complete")
+    status_msg = f"Code generated: {len(code.splitlines())} lines"
+    await _emit_status(emit, "code_forge", "done", status_msg)
     return code
 
 
@@ -304,7 +314,11 @@ async def run_auditor(
     result = AuditResult.model_validate(data)
 
     await emit({"type": "agent_output", "agent": "auditor", "output": result.model_dump()})
-    await _emit_status(emit, "auditor", "done", result.summary or "Audit complete")
+    if result.issues:
+        status_msg = f"Audit complete: {len(result.issues)} issue{'s' if len(result.issues) != 1 else ''} found"
+    else:
+        status_msg = "Audit complete: no issues found"
+    await _emit_status(emit, "auditor", "done", status_msg)
     return result
 
 
@@ -336,7 +350,8 @@ async def run_accessibility(
 
     updated = extract_code("".join(parts))
     await emit({"type": "final_code", "code": updated})
-    await _emit_status(emit, "accessibility", "done", "Accessibility pass complete")
+    status_msg = f"A11y pass complete: {len(updated.splitlines())} lines of code"
+    await _emit_status(emit, "accessibility", "done", status_msg)
     return updated
 
 
@@ -380,7 +395,13 @@ async def run_visual_check(
 
     if emit:
         await emit({"type": "agent_output", "agent": "vision_critic", "output": finalized.model_dump()})
-        status = "Visual QA: OK" if finalized.passed else "Visual QA: issues found"
+        if finalized.passed:
+            if finalized.issues:
+                status = f"Visual QA passed with {len(finalized.issues)} warning{'s' if len(finalized.issues) != 1 else ''}"
+            else:
+                status = "Visual QA passed: 0 issues found"
+        else:
+            status = f"Visual QA failed: {len(finalized.issues)} issue{'s' if len(finalized.issues) != 1 else ''} found"
         await _emit_status(emit, "vision_critic", "done", status)
 
     return finalized

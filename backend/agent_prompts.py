@@ -83,6 +83,7 @@ Rules:
      Each non-home screen must have a clear page heading (h1 or h2) matching the route label, plus those content elements.
   5. The home/index route (usually "/") should use the full sketch-derived layout from the Vision Parser and architecture plan — that remains detailed and unchanged.
   6. If `routes` contains only one route or is empty, DO NOT use React Router. Just output a single standard App component as a single-screen page (maintaining legacy behavior byte-for-byte).
+- When an image/visual region has no real content to show, generate a simple decorative SVG icon (like a generic image/photo outline icon) or a subtle gradient placeholder block instead of literal text like "Image Placeholder" or "Image" — visually indicate "this is where an image would go" without rendering that as readable words on screen.
 - Return ONLY the JSX/code — no markdown fences, no explanation before or after."""
 
 CODE_FORGE_USER = """Generate the complete React component for this app.

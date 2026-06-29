@@ -191,7 +191,7 @@ export default function UploadPane({
               disabled={disabled}
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="Describe the app you want, e.g. a dashboard with a sidebar, two stat cards, and a chart area..."
+              placeholder="Describe the app you want, e.g. a fintech dashboard called Investly with a sidebar, two stat cards showing balance/gain, and a chart area..."
               className="flex-1 w-full text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none bg-transparent leading-relaxed"
             />
           </div>
@@ -208,7 +208,7 @@ export default function UploadPane({
               disabled={disabled}
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="e.g. dark theme, mobile-first, add a chart area…"
+              placeholder="e.g. fintech app layout, dark theme, add a balance chart area…"
               className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800
                          placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-1
                          focus:ring-indigo-400 transition-all shadow-sm disabled:opacity-50"
