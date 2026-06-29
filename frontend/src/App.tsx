@@ -31,6 +31,7 @@ function Studio() {
     autoRefine,
     isRefining,
     refineRegion,
+    cancelOperation,
   } = usePipeline(WS_URL);
   const [description, setDescription] = useState('');
   const [pendingImage, setPendingImage] = useState<{ base64: string; mime: string } | null>(null);
@@ -142,6 +143,7 @@ function Studio() {
             disabled={isRunning || (inputMode === 'sketch' ? !pendingImage : !description.trim())}
             className="text-xs px-4 py-1.5 rounded font-semibold transition-colors
                        bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-sm"
+            aria-label={isRunning ? 'Pipeline running' : 'Generate app from sketch'}
           >
             {isRunning ? 'Running…' : 'Generate'}
           </button>
@@ -149,19 +151,19 @@ function Studio() {
 
         {/* Status badge */}
         {isRunning && (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-100/60 border border-blue-200 px-2.5 py-1 rounded-full">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-100/60 border border-blue-200 px-2.5 py-1 rounded-full" role="status">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
             Pipeline running
           </div>
         )}
         {isDone && (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-100/60 border border-emerald-200 px-2.5 py-1 rounded-full">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-100/60 border border-emerald-200 px-2.5 py-1 rounded-full" role="status">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             Complete
           </div>
         )}
         {isError && (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-rose-100/60 border border-rose-200 px-2.5 py-1 rounded-full" title={state.errorMsg}>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-rose-100/60 border border-rose-200 px-2.5 py-1 rounded-full" title={state.errorMsg} role="alert">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
             {state.errorMsg || 'Error'}
           </div>
@@ -193,6 +195,7 @@ function Studio() {
             criticState={state.agents['vision_critic']}
             isRunning={isRunning}
             refineRegion={refineRegion}
+            cancelRefine={cancelOperation}
             errorMsg={state.errorMsg}
           />
         </div>
@@ -206,6 +209,7 @@ function Studio() {
               issues={state.issues}
               onRerunQA={() => rerunVisualCheck(state.finalCode)}
               onAutoRefine={() => autoRefine(state.finalCode, description)}
+              onCancelRefine={cancelOperation}
               isRefining={isRefining}
             />
           </div>
