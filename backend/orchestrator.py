@@ -378,10 +378,6 @@ async def run_visual_check(
     finalized = finalize_visual_check_result(result.passed, result.issues, result.summary)
     set_latest_visual_issues([issue.model_dump() for issue in finalized.issues])
 
-    # cache for /chat critic queries
-    global _latest_visual_issues
-    _latest_visual_issues = [i.model_dump() for i in finalized.issues]
-
     if emit:
         await emit({"type": "agent_output", "agent": "vision_critic", "output": finalized.model_dump()})
         status = "Visual QA: OK" if finalized.passed else "Visual QA: issues found"
