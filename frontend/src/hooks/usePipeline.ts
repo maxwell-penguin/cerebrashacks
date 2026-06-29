@@ -61,8 +61,19 @@ export function usePipeline(wsUrl: string) {
 
   const [isRefining, setIsRefining] = useState(false);
   const [refineProgress, setRefineProgress] = useState('');
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const cancelOperation = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsRefining(false);
+    setRefineProgress('');
+  }, []);
 
   const reset = useCallback(() => {
+    cancelOperation();
     setState({
       phase: 'idle',
       agents: defaultAgentMap(),
@@ -326,6 +337,12 @@ export function usePipeline(wsUrl: string) {
 
   const autoRefine = useCallback(
     async (code: string, description: string) => {
+      // Cancel any in-flight operation
+      cancelOperation();
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       setIsRefining(true);
       setRefineProgress('Iteration 1 of 3...');
 
@@ -363,6 +380,7 @@ export function usePipeline(wsUrl: string) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code, design_contract: contract, description }),
+          signal: controller.signal,
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -415,18 +433,23 @@ export function usePipeline(wsUrl: string) {
         }
 
       } catch (err) {
-        console.error('Auto-refine failed:', err);
-        setState(prev => {
-          const agents = { ...prev.agents };
-          agents['vision_critic'] = {
-            status: 'error',
-            message: `Auto-refine failed: ${err instanceof Error ? err.message : String(err)}`,
-          };
-          return { ...prev, agents };
-        });
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          // User cancelled — nothing to do
+        } else {
+          console.error('Auto-refine failed:', err);
+          setState(prev => {
+            const agents = { ...prev.agents };
+            agents['vision_critic'] = {
+              status: 'error',
+              message: `Auto-refine failed: ${err instanceof Error ? err.message : String(err)}`,
+            };
+            return { ...prev, agents };
+          });
+        }
       } finally {
         clearInterval(progressInterval);
         setIsRefining(false);
+        abortControllerRef.current = null;
       }
     },
     [apiBase],
@@ -434,6 +457,11 @@ export function usePipeline(wsUrl: string) {
 
   const refineRegion = useCallback(
     async (code: string, regionDescription: string, refinementRequest: string, sketchBase64?: string) => {
+      // Cancel any in-flight operation and create a fresh controller
+      cancelOperation();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       const res = await fetch(`${apiBase}/refine-region`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -443,6 +471,7 @@ export function usePipeline(wsUrl: string) {
           refinement_request: refinementRequest,
           sketch_image_base64: sketchBase64 ?? '',
         }),
+        signal: controller.signal,
       });
       if (!res.ok) {
         let errMsg = 'Region refinement failed';
@@ -469,5 +498,6 @@ export function usePipeline(wsUrl: string) {
     isRefining,
     refineProgress,
     refineRegion,
+    cancelOperation,
   };
 }
