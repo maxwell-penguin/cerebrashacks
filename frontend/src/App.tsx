@@ -46,8 +46,8 @@ function Studio() {
 
   // Resizable panels
   const leftPanel = useResize(288, 200, 500, 'x');   // default 288px (w-72)
-  const rightPanel = useResize(320, 220, 600, 'x');  // default 320px (w-80)
-  const copilotHeight = useResize(180, 100, 500, 'y'); // bottom panel height
+  const rightPanel = useResize(320, 220, 600, 'x', true);  // invert: drag right = right panel wider
+  const copilotHeight = useResize(180, 100, 500, 'y', true); // invert: handle on top edge
 
   const handleImage = useCallback((base64: string, mimeType: string) => {
     setPendingImage({ base64, mime: mimeType });
@@ -178,7 +178,7 @@ function Studio() {
       </header>
 
       {/* Three-pane layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1" style={{ overflow: 'clip' }}>
         {/* Left: upload + vision overlay */}
         <div className="shrink-0 overflow-hidden" style={{ width: leftPanel.value }}>
           <UploadPane
@@ -200,7 +200,7 @@ function Studio() {
         />
 
         {/* Center: Monaco editor + iframe preview */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-w-0">
           <EditorPane
             streamingCode={state.streamingCode}
             finalCode={state.finalCode}
@@ -213,9 +213,9 @@ function Studio() {
           />
         </div>
 
-        {/* Right: agent columns + tabs (Issues / Chat) */}
-        <div className="shrink-0 border-l border-slate-200 flex flex-col bg-slate-100 overflow-hidden" style={{ width: rightPanel.value }}>
-          <div className="flex-1 min-h-0">
+        {/* Right: agent columns + chat/issues */}
+        <div className="shrink-0 border-l border-slate-200 flex flex-col bg-slate-100" style={{ width: rightPanel.value }}>
+          <div className="flex-1 min-h-0 overflow-hidden">
             <AgentColumns
               agents={state.agents}
               tps={state.tps}
@@ -227,56 +227,56 @@ function Studio() {
             />
           </div>
 
-          {/* Resize handle: agents | copilot/issues */}
+          {/* Resize handle: agents | chat */}
           <div
             {...copilotHeight.handleProps}
             className="h-1 shrink-0 bg-slate-200 hover:bg-indigo-400 cursor-row-resize transition-colors active:bg-indigo-500 z-20"
           />
 
-          {/* Tab bar */}
-          <div className="flex border-t border-slate-200 bg-slate-50 shrink-0 select-none">
-            <button
-              onClick={() => setRightTab('chat')}
-              className={`flex-1 text-[11px] font-bold py-2 transition-colors uppercase tracking-wider ${
-                rightTab === 'chat'
-                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white font-extrabold'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              💬 Co-pilot
-            </button>
-            <button
-              onClick={() => setRightTab('issues')}
-              className={`flex-1 text-[11px] font-bold py-2 transition-colors uppercase tracking-wider flex items-center justify-center gap-1.5 ${
-                rightTab === 'issues'
-                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white font-extrabold'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <span>⚠️ Issues</span>
-              <span className={`text-[9px] font-mono px-1 rounded-full ${
-                state.issues.length > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-              }`}>
-                {state.issues.length}
-              </span>
-            </button>
-          </div>
-
-          {/* Tab content */}
-          <div className="shrink-0 flex flex-col overflow-hidden" style={{ height: copilotHeight.value }}>
-            {rightTab === 'issues' ? (
-              <IssuesPanel issues={state.issues} />
-            ) : (
-              <ChatPanel
-                apiBase={WS_URL.replace(/^ws:/, 'http:').replace(/^wss:/, 'https:').replace(/\/ws$/, '')}
-                vision={state.vision}
-                finalCode={state.finalCode}
-              />
-            )}
+          {/* Tab bar + content (resizable) */}
+          <div className="shrink-0 flex flex-col" style={{ height: copilotHeight.value }}>
+            <div className="flex border-t border-slate-200 bg-slate-50 shrink-0 select-none">
+              <button
+                onClick={() => setRightTab('chat')}
+                className={`flex-1 text-[11px] font-bold py-2 transition-colors uppercase tracking-wider ${
+                  rightTab === 'chat'
+                    ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white font-extrabold'
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                💬 Co-pilot
+              </button>
+              <button
+                onClick={() => setRightTab('issues')}
+                className={`flex-1 text-[11px] font-bold py-2 transition-colors uppercase tracking-wider flex items-center justify-center gap-1.5 ${
+                  rightTab === 'issues'
+                    ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white font-extrabold'
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <span>⚠️ Issues</span>
+                <span className={`text-[9px] font-mono px-1 rounded-full ${
+                  state.issues.length > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {state.issues.length}
+                </span>
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {rightTab === 'issues' ? (
+                <IssuesPanel issues={state.issues} />
+              ) : (
+                <ChatPanel
+                  apiBase={WS_URL.replace(/^ws:/, 'http:').replace(/^wss:/, 'https:').replace(/\/ws$/, '')}
+                  vision={state.vision}
+                  finalCode={state.finalCode}
+                />
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Resize handle: right panel outer edge */}
+        {/* Resize handle: right edge of right panel */}
         <div
           {...rightPanel.handleProps}
           className="w-1 shrink-0 bg-slate-200 hover:bg-indigo-400 cursor-col-resize transition-colors active:bg-indigo-500 z-20"
