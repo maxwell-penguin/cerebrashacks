@@ -213,6 +213,12 @@ function Studio() {
           />
         </div>
 
+        {/* Resize handle: center | right sidebar */}
+        <div
+          {...rightPanel.handleProps}
+          className="w-1 shrink-0 bg-slate-200 hover:bg-indigo-400 cursor-col-resize transition-colors active:bg-indigo-500 z-20"
+        />
+
         {/* Right: agent columns + chat/issues */}
         <div className="shrink-0 border-l border-slate-200 flex flex-col bg-slate-100" style={{ width: rightPanel.value }}>
           <div className="flex-1 min-h-0 overflow-hidden">
@@ -234,7 +240,7 @@ function Studio() {
           />
 
           {/* Tab bar + content (resizable) */}
-          <div className="shrink-0 flex flex-col" style={{ height: copilotHeight.value }}>
+          <div className="shrink-0 flex flex-col overflow-hidden" style={{ height: copilotHeight.value }}>
             <div className="flex border-t border-slate-200 bg-slate-50 shrink-0 select-none">
               <button
                 onClick={() => setRightTab('chat')}
@@ -275,12 +281,6 @@ function Studio() {
             </div>
           </div>
         </div>
-
-        {/* Resize handle: right edge of right panel */}
-        <div
-          {...rightPanel.handleProps}
-          className="w-1 shrink-0 bg-slate-200 hover:bg-indigo-400 cursor-col-resize transition-colors active:bg-indigo-500 z-20"
-        />
       </div>
 
       <HistoryBar
