@@ -9,13 +9,20 @@ import {
 } from 'lucide-react';
 import type { AgentMap, AgentName, AgentStatus, UnifiedIssue } from '../types';
 
-const AGENTS: { name: AgentName; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { name: 'vision_parser', label: 'Vision', icon: Eye },
-  { name: 'architect', label: 'Architect', icon: LayoutGrid },
-  { name: 'code_forge', label: 'Code Forge', icon: Zap },
-  { name: 'auditor', label: 'Auditor', icon: Search },
-  { name: 'accessibility', label: 'A11y', icon: Accessibility },
-  { name: 'vision_critic', label: 'Critic', icon: Sparkles },
+const AGENTS: {
+  name: AgentName;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  bg: string;
+  border: string;
+  iconColor: string;
+}[] = [
+  { name: 'vision_parser', label: 'Vision', icon: Eye,           bg: 'bg-violet-50/50',  border: 'border-violet-100',  iconColor: 'text-violet-500'  },
+  { name: 'architect',     label: 'Architect', icon: LayoutGrid, bg: 'bg-blue-50/50',    border: 'border-blue-100',    iconColor: 'text-blue-500'    },
+  { name: 'code_forge',    label: 'Code Forge', icon: Zap,       bg: 'bg-amber-50/50',   border: 'border-amber-100',   iconColor: 'text-amber-500'   },
+  { name: 'auditor',       label: 'Auditor', icon: Search,       bg: 'bg-rose-50/50',    border: 'border-rose-100',    iconColor: 'text-rose-500'    },
+  { name: 'accessibility', label: 'A11y', icon: Accessibility,   bg: 'bg-emerald-50/50', border: 'border-emerald-100', iconColor: 'text-emerald-500' },
+  { name: 'vision_critic', label: 'Critic', icon: Sparkles,      bg: 'bg-fuchsia-50/50', border: 'border-fuchsia-100', iconColor: 'text-fuchsia-500' },
 ];
 
 const STATUS_CONFIG: Record<AgentStatus, { bg: string; text: string; label: string; pulse: boolean }> = {
@@ -83,9 +90,9 @@ export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRef
           <div className="rounded-2xl border border-slate-200/80 bg-white shadow-md px-4 py-4">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">6 agents ready</p>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mt-1">
-              {AGENTS.map(({ label, icon: Icon }) => (
-                <div key={label} className="flex items-center gap-1.5 text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-[11px] font-semibold shadow-sm">
-                  <Icon className="w-3.5 h-3.5 text-slate-500" />
+              {AGENTS.map(({ label, icon: Icon, bg, border, iconColor }) => (
+                <div key={label} className={`flex items-center gap-1.5 text-slate-700 ${bg} border ${border} rounded-xl px-2.5 py-1.5 text-[11px] font-semibold shadow-sm`}>
+                  <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
                   <span>{label}</span>
                 </div>
               ))}
