@@ -131,12 +131,14 @@ export default function EditorPane({
   } | null>(null);
 
   // Draw Mode state
-  const [drawMode, setDrawMode] = useState<'text' | 'draw'>('text');
+  const [drawMode, setDrawMode] = useState<'text' | 'draw' | 'upload'>('text');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hasStrokes, setHasStrokes] = useState(false);
-  const strokes = useRef<Array<Array<{ x: number; y: number }>>>([]);
+  const strokes = useRef<Array<Array<{ x: number; y: number }> >>([]);
   const isDrawingRef = useRef(false);
   const currentStroke = useRef<Array<{ x: number; y: number }>>([]);
+  const [uploadedImageBase64, setUploadedImageBase64] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const redrawAll = useCallback(() => {
     const canvas = canvasRef.current;
@@ -216,13 +218,16 @@ export default function EditorPane({
 
   const handleApplyRefinement = async () => {
     const hasText = refinementText.trim().length > 0;
-    if (!refineRegion || (!hasText && !hasStrokes)) return;
+    const hasImage = drawMode === 'upload' && !!uploadedImageBase64;
+    if (!refineRegion || (!hasText && !hasStrokes && !hasImage)) return;
     setRefinementLoading(true);
     setRefinementError(null);
     setRefinementSuccess(null);
 
     let sketchBase64: string | undefined;
-    if (hasStrokes && canvasRef.current) {
+    if (hasImage) {
+      sketchBase64 = uploadedImageBase64!;
+    } else if (hasStrokes && canvasRef.current) {
       sketchBase64 = canvasRef.current.toDataURL('image/png');
     }
 
@@ -282,6 +287,7 @@ export default function EditorPane({
     setDrawMode('text');
     strokes.current = [];
     setHasStrokes(false);
+    setUploadedImageBase64(null);
   }, [isDesignMode]);
 
   useEffect(() => {
@@ -679,6 +685,26 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               </div>
             )}
 
+            {/* Uploaded image preview */}
+            {drawMode === 'upload' && uploadedImageBase64 && (
+              <div className="bg-white border-t border-slate-200">
+                <div className="flex items-center justify-between px-3 py-1 border-b border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    📎 Uploaded sketch
+                  </span>
+                  <button
+                    onClick={() => { setUploadedImageBase64(null); setDrawMode('text'); }}
+                    className="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <div className="flex justify-center p-2 bg-slate-50">
+                  <img src={uploadedImageBase64} alt="Uploaded sketch" className="max-h-32 rounded border border-slate-200 object-contain" />
+                </div>
+              </div>
+            )}
+
             {/* Canvas panel — shown when draw mode is active */}
             {drawMode === 'draw' && (
               <div className="bg-white border-t border-slate-200 shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
@@ -740,30 +766,53 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <option value="Footer">Footer</option>
               </select>
 
-              {/* Describe / Draw toggle */}
+              {/* Describe / Draw / Upload toggle */}
               <div className="flex rounded border border-slate-200 overflow-hidden shrink-0">
                 <button
-                  onClick={() => setDrawMode('text')}
+                  onClick={() => { setDrawMode('text'); setUploadedImageBase64(null); }}
                   disabled={refinementLoading || !!pendingRefinement}
                   className={`text-[10px] px-2 py-1 font-semibold transition-colors ${drawMode === 'text' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
                 >
                   Describe
                 </button>
                 <button
-                  onClick={() => setDrawMode('draw')}
+                  onClick={() => { setDrawMode('draw'); setUploadedImageBase64(null); }}
                   disabled={refinementLoading || !!pendingRefinement}
                   className={`text-[10px] px-2 py-1 font-semibold border-l border-slate-200 transition-colors ${drawMode === 'draw' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
                 >
                   ✏️ Draw
                 </button>
+                <button
+                  onClick={() => { setDrawMode('upload'); fileInputRef.current?.click(); }}
+                  disabled={refinementLoading || !!pendingRefinement}
+                  className={`text-[10px] px-2 py-1 font-semibold border-l border-slate-200 transition-colors ${drawMode === 'upload' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                >
+                  📎 Upload
+                </button>
               </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    setUploadedImageBase64(reader.result as string);
+                    setDrawMode('upload');
+                  };
+                  reader.readAsDataURL(file);
+                }}
+              />
 
               <input
                 type="text"
                 value={refinementText}
                 onChange={e => setRefinementText(e.target.value)}
                 disabled={refinementLoading || !!pendingRefinement}
-                placeholder={drawMode === 'draw' ? 'Optional: add context for your drawing…' : 'Describe the change you want…'}
+                placeholder={drawMode === 'draw' ? 'Optional: add context for your drawing…' : drawMode === 'upload' ? 'Describe the change based on your uploaded sketch…' : 'Describe the change you want…'}
                 className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-slate-800 focus:outline-none focus:border-indigo-500 min-w-0"
               />
 
@@ -779,7 +828,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={handleApplyRefinement}
-                  disabled={refinementLoading || !!pendingRefinement || (!refinementText.trim() && !hasStrokes)}
+                  disabled={refinementLoading || !!pendingRefinement || (!refinementText.trim() && !hasStrokes && !uploadedImageBase64)}
                   className="text-xs px-3 py-1 rounded font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-sm flex items-center gap-1.5 shrink-0"
                 >
                   {refinementLoading ? (
