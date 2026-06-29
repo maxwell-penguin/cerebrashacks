@@ -40,7 +40,7 @@ function prepareCodeForBrowser(code: string): string {
   prepared = prepared.replace(/import\s+[\s\S]*?\s+from\s+['"]react['"];?/g, '');
   prepared = prepared.replace(/import\s+[\s\S]*?\s+from\s+['"]react-router-dom['"];?/g, '');
 
-  // 3. Process remaining lines to clean up exports
+  // 3. Process remaining lines to clean up exports — rename App to avoid collisions
   const lines = prepared.split('\n');
   const outLines: string[] = [];
   for (const line of lines) {
@@ -54,12 +54,16 @@ function prepareCodeForBrowser(code: string): string {
     outLines.push(line);
   }
 
+  // Rename the main App component to avoid collisions with sub-components
+  const deduped = outLines.join('\n')
+    .replace(/\bfunction App\b\s*\(/g, 'function __SketchStorm_App__ (')
+    .replace(/export default __SketchStorm_App__;?/g, '');
+
   const hooks = usedHooks.size > 0 ? [...usedHooks].sort().join(', ') : 'useState';
   const preamble = `const { ${hooks} } = React;
 const { MemoryRouter, Routes, Route, Link, NavLink, useNavigate, useParams, useLocation } = window.ReactRouterDOM || {};
 const BrowserRouter = MemoryRouter;`;
-  const body = outLines.join('\n').trim();
-  return `${preamble}\n\n${body}\n\nconst root = ReactDOM.createRoot(document.getElementById('root'));\nroot.render(<App />);`;
+  return `${preamble}\n\n${deduped}\n\nconst root = ReactDOM.createRoot(document.getElementById('root'));\nroot.render(<__SketchStorm_App__ />);`;
 }
 
 function buildSrcdoc(componentCode: string): string {
@@ -84,15 +88,25 @@ function buildSrcdoc(componentCode: string): string {
       if(typeof Babel==='undefined'||typeof React==='undefined'||typeof ReactDOM==='undefined'||typeof ReactRouterDOM==='undefined'){
         setTimeout(boot,50);return;
       }
-      // Block navigation attempts — keep the preview self-contained
+      // Block all navigation — keep the preview self-contained
       var _origPushState = history.pushState;
       var _origReplaceState = history.replaceState;
-      history.pushState = function(){};
-      history.replaceState = function(){};
+      history.pushState = function(state, title, url) {
+        if (typeof url === 'string' && (url.startsWith('http') || url.startsWith('//'))) return;
+        return _origPushState.apply(this, arguments);
+      };
+      history.replaceState = function(state, title, url) {
+        if (typeof url === 'string' && (url.startsWith('http') || url.startsWith('//'))) return;
+        return _origReplaceState.apply(this, arguments);
+      };
       window.addEventListener('click', function(e){
         var a = e.target.closest('a');
-        if (a && (a.getAttribute('href')||'').startsWith('/')) { e.preventDefault(); }
+        if (a && a.href && !a.href.startsWith('javascript:')) { e.preventDefault(); e.stopPropagation(); }
       }, true);
+      var _origAssign = window.location.assign;
+      var _origReplace = window.location.replace;
+      window.location.assign = function(){};
+      window.location.replace = function(){};
       try{
         var source=${bundled};
         var transformed=Babel.transform(source,{presets:[['react',{runtime:'classic'}]]}).code;
