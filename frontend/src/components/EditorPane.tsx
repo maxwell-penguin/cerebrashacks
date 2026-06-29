@@ -15,6 +15,7 @@ interface Props {
     diff_stats: { lines_changed: number; lines_total: number; change_ratio: number };
     warning: string | null;
   }>;
+  cancelRefine?: () => void;
   errorMsg?: string;
 }
 
@@ -103,6 +104,7 @@ export default function EditorPane({
   criticState,
   isRunning,
   refineRegion,
+  cancelRefine,
   errorMsg,
 }: Props) {
   const [tab, setTab] = useState<Tab>('editor');
@@ -245,8 +247,12 @@ export default function EditorPane({
         setRefinementText('');
       }
     } catch (err: any) {
-      console.error('Refinement failed:', err);
-      setRefinementError(err.message || 'Failed to refine region.');
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        // User cancelled — do nothing
+      } else {
+        console.error('Refinement failed:', err);
+        setRefinementError(err.message || 'Failed to refine region.');
+      }
     } finally {
       setRefinementLoading(false);
     }
@@ -596,8 +602,20 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-450 bg-slate-50 text-sm">
-              Waiting for code generation…
+            <div className="flex-1 flex flex-col items-center justify-center bg-slate-50" role="status" aria-label="Waiting for code generation">
+              {isRunning ? (
+                <div className="flex flex-col items-center gap-3 animate-pulse">
+                  <div className="w-8 h-8 border-3 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
+                  <span className="text-sm text-slate-500 font-medium">Generating code…</span>
+                  <div className="flex flex-col gap-2 w-64">
+                    <div className="h-3 bg-slate-200 rounded w-full" />
+                    <div className="h-3 bg-slate-200 rounded w-3/4" />
+                    <div className="h-3 bg-slate-200 rounded w-1/2" />
+                  </div>
+                </div>
+              ) : (
+                <span className="text-sm text-slate-400">Waiting for code generation…</span>
+              )}
             </div>
           )}
         </div>
@@ -758,20 +776,30 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 </span>
               )}
 
-              <button
-                onClick={handleApplyRefinement}
-                disabled={refinementLoading || !!pendingRefinement || (!refinementText.trim() && !hasStrokes)}
-                className="text-xs px-3 py-1 rounded font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-sm flex items-center gap-1.5 shrink-0"
-              >
-                {refinementLoading ? (
-                  <>
-                    <span className="w-3 h-3 border-2 border-white/35 border-t-white rounded-full animate-spin" />
-                    Refining…
-                  </>
-                ) : (
-                  'Apply'
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={handleApplyRefinement}
+                  disabled={refinementLoading || !!pendingRefinement || (!refinementText.trim() && !hasStrokes)}
+                  className="text-xs px-3 py-1 rounded font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-sm flex items-center gap-1.5 shrink-0"
+                >
+                  {refinementLoading ? (
+                    <>
+                      <span className="w-3 h-3 border-2 border-white/35 border-t-white rounded-full animate-spin" />
+                      Refining…
+                    </>
+                  ) : (
+                    'Apply'
+                  )}
+                </button>
+                {refinementLoading && cancelRefine && (
+                  <button
+                    onClick={cancelRefine}
+                    className="text-xs px-2.5 py-1 rounded font-semibold transition-colors bg-slate-200 hover:bg-slate-300 text-slate-700 shadow-sm shrink-0"
+                  >
+                    Cancel
+                  </button>
                 )}
-              </button>
+              </div>
             </div>
           </div>
         )}
