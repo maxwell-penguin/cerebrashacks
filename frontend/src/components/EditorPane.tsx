@@ -83,6 +83,15 @@ function buildSrcdoc(componentCode: string): string {
       if(typeof Babel==='undefined'||typeof React==='undefined'||typeof ReactDOM==='undefined'||typeof ReactRouterDOM==='undefined'){
         setTimeout(boot,50);return;
       }
+      // Block navigation attempts — keep the preview self-contained
+      var _origPushState = history.pushState;
+      var _origReplaceState = history.replaceState;
+      history.pushState = function(){};
+      history.replaceState = function(){};
+      window.addEventListener('click', function(e){
+        var a = e.target.closest('a');
+        if (a && (a.getAttribute('href')||'').startsWith('/')) { e.preventDefault(); }
+      }, true);
       try{
         var source=${bundled};
         var transformed=Babel.transform(source,{presets:[['react',{runtime:'classic'}]]}).code;
@@ -648,6 +657,21 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               className="w-full h-full border-0 bg-white"
               sandbox="allow-scripts"
               title="Live preview"
+              onLoad={() => {
+                // Prevent iframe navigation from escaping the preview
+                try {
+                  const doc = iframeRef.current?.contentDocument;
+                  if (doc) {
+                    doc.addEventListener('click', (e) => {
+                      const target = e.target as HTMLElement;
+                      const anchor = target.closest('a');
+                      if (anchor && anchor.getAttribute('href')?.startsWith('/')) {
+                        e.preventDefault();
+                      }
+                    }, true);
+                  }
+                } catch (_) {}
+              }}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center text-slate-450 bg-slate-50 text-sm">
