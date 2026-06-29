@@ -213,12 +213,6 @@ function Studio() {
           />
         </div>
 
-        {/* Resize handle: center | right */}
-        <div
-          {...rightPanel.handleProps}
-          className="w-1 shrink-0 bg-slate-200 hover:bg-indigo-400 cursor-col-resize transition-colors active:bg-indigo-500 z-20"
-        />
-
         {/* Right: agent columns + tabs (Issues / Chat) */}
         <div className="shrink-0 border-l border-slate-200 flex flex-col bg-slate-100 overflow-hidden" style={{ width: rightPanel.value }}>
           <div className="flex-1 min-h-0">
@@ -281,6 +275,12 @@ function Studio() {
             )}
           </div>
         </div>
+
+        {/* Resize handle: right panel outer edge */}
+        <div
+          {...rightPanel.handleProps}
+          className="w-1 shrink-0 bg-slate-200 hover:bg-indigo-400 cursor-col-resize transition-colors active:bg-indigo-500 z-20"
+        />
       </div>
 
       <HistoryBar

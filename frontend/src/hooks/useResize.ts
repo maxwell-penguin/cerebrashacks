@@ -9,6 +9,7 @@ export function useResize(
   min: number,
   max: number,
   axis: 'x' | 'y' = 'x',
+  invert = false,
 ) {
   const [value, setValue] = useState(initial);
   const dragging = useRef(false);
@@ -30,7 +31,8 @@ export function useResize(
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!dragging.current) return;
-      const delta = (axis === 'x' ? e.clientX : e.clientY) - startPos.current;
+      const rawDelta = (axis === 'x' ? e.clientX : e.clientY) - startPos.current;
+      const delta = invert ? -rawDelta : rawDelta;
       const next = Math.min(max, Math.max(min, startValue.current + delta));
       setValue(next);
     };
