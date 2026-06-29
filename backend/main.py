@@ -19,10 +19,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from cerebras_client import CerebrasClient, build_text_messages
 from pipeline_config import RUN_ACCESSIBILITY_DEFAULT, RUN_AUDIT_DEFAULT
 from render_screenshot import RenderScreenshotError, render_jsx_to_screenshot
+from parsing import extract_code, extract_code_defensive, extract_json, extract_json_with_repair
+from vision_client import call_vision_json
 from agent_prompts import (
     ARCHITECT_CHAT_SYSTEM,
+    AUTO_REFINE_SYSTEM,
+    AUTO_REFINE_USER,
     CRITIC_CHAT_SYSTEM,
     DESIGN_ADVISOR_CHAT_SYSTEM,
+    REFINE_REGION_SYSTEM,
+    REFINE_REGION_USER,
+    VISION_PARSER_SYSTEM,
+    VISION_PARSER_USER,
 )
 from orchestrator import (
     get_latest_visual_issues,
@@ -33,18 +41,20 @@ from orchestrator import (
     finalize_visual_check_result,
 )
 from schemas import (
+    ArchitectResult,
     AuditRequest,
     AuditResult,
-    ChatRequest,
-    ChatResponse,
-    GenerateResponse,
-    VisualCheckRequest,
-    VisualCheckResult,
     AutoRefineRequest,
     AutoRefineResult,
+    ChatRequest,
+    ChatResponse,
+    DiffStats,
+    GenerateResponse,
     RefineRegionRequest,
     RefineRegionResponse,
-    DiffStats,
+    VisionParseResult,
+    VisualCheckRequest,
+    VisualCheckResult,
 )
 
 _cerebras: CerebrasClient | None = None
@@ -134,8 +144,6 @@ async def generate(
         screenshot_mime=screenshot_mime,
         design_contract=design_contract,
     )
-
-    from schemas import ArchitectResult, VisionParseResult
 
     vision_data = result_holder.get("vision")
     arch_data = result_holder.get("architecture")
@@ -227,8 +235,6 @@ async def auto_refine(body: AutoRefineRequest) -> AutoRefineResult:
     Self-correcting loop that renders, critiques, and patches code up to 3 times.
     """
     import os
-    from agent_prompts import AUTO_REFINE_SYSTEM, AUTO_REFINE_USER
-    from parsing import extract_code_defensive
     import logging
 
     log = logging.getLogger(__name__)
@@ -329,21 +335,14 @@ async def refine_region(body: RefineRegionRequest) -> RefineRegionResponse:
     """
     import difflib
     import logging
-    from agent_prompts import REFINE_REGION_SYSTEM, REFINE_REGION_USER
-    from parsing import extract_code_defensive
 
     log = logging.getLogger(__name__)
     client = get_client()
 
     try:
-        from parsing import extract_json
-
         # --- Sketch input: run Vision Parser if a drawing was provided ---
         sketch_description = ""
         if body.sketch_image_base64.strip():
-            from agent_prompts import VISION_PARSER_SYSTEM, VISION_PARSER_USER
-            from vision_client import call_vision_json
-
             b64 = body.sketch_image_base64
             if "," in b64:
                 b64 = b64.split(",", 1)[1]
@@ -360,7 +359,6 @@ async def refine_region(body: RefineRegionRequest) -> RefineRegionResponse:
                 timeout=25.0,
             )
             vision_data = extract_json(raw_vision)
-            from schemas import VisionParseResult
             vision = VisionParseResult.model_validate(vision_data)
 
             if vision.components:
@@ -456,15 +454,6 @@ async def chat(body: ChatRequest) -> ChatResponse:
     """
     import json
     client = get_client()
-
-    from agent_prompts import (
-        ARCHITECT_CHAT_SYSTEM,
-        DESIGN_ADVISOR_CHAT_SYSTEM,
-        CRITIC_CHAT_SYSTEM,
-    )
-    from parsing import extract_json_with_repair
-    from cerebras_client import build_text_messages
-    from orchestrator import get_latest_visual_issues
 
     # 1. Determine system prompt and construct user message based on selected agent
     if body.agent == "architect":
