@@ -39,10 +39,11 @@ interface Props {
   issues: UnifiedIssue[];
   onRerunQA?: () => void;
   onAutoRefine?: () => void;
+  onCancelRefine?: () => void;
   isRefining?: boolean;
 }
 
-export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRefine, isRefining }: Props) {
+export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRefine, onCancelRefine, isRefining }: Props) {
   const criticIssues = issues.filter(i => i.agent === 'Critic');
 
   const allIdle = AGENTS.every(({ name }) => agents[name].status === 'idle');
@@ -148,6 +149,17 @@ export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRef
                           className="text-[10px] flex-1 py-1.5 px-2 rounded bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold transition-all border border-indigo-700 flex items-center justify-center gap-1 shadow-sm active:scale-[0.98]"
                         >
                           ⚡ {isRefining ? 'Refining...' : 'Auto-refine'}
+                        </button>
+                      )}
+                      {isRefining && onCancelRefine && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCancelRefine();
+                          }}
+                          className="text-[10px] py-1.5 px-2 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold transition-all border border-slate-300/80 flex items-center justify-center gap-1 shadow-sm active:scale-[0.98]"
+                        >
+                          ✕ Cancel
                         </button>
                       )}
                     </div>
