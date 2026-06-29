@@ -78,13 +78,13 @@ export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRef
           </span>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {allIdle ? (
-          <div className="rounded-xl border border-slate-200 bg-white shadow-sm px-3 py-3">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">6 agents ready</p>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mt-1">
+          <div className="rounded-2xl border border-slate-200/80 bg-white shadow-md px-4 py-4">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">6 agents ready</p>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mt-1">
               {AGENTS.map(({ label, icon: Icon }) => (
-                <div key={label} className="flex items-center gap-1.5 text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-[11px] font-semibold shadow-sm">
+                <div key={label} className="flex items-center gap-1.5 text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-[11px] font-semibold shadow-sm">
                   <Icon className="w-3.5 h-3.5 text-slate-500" />
                   <span>{label}</span>
                 </div>
@@ -101,13 +101,13 @@ export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRef
           return (
             <div
               key={name}
-              className={`rounded-xl border transition-colors duration-300 shadow-sm overflow-hidden ${cfg.bg} ${cfg.pulse ? 'animate-card-active' : ''}`}
+              className={`rounded-2xl border border-slate-200/80 transition-all duration-300 shadow-md hover:shadow-lg overflow-hidden ${cfg.bg} ${cfg.pulse ? 'animate-card-active' : ''}`}
             >
               {/* Compact row — always visible */}
               <button
                 type="button"
                 onClick={() => toggle(name, status)}
-                className="w-full flex items-center justify-between px-3 py-2 text-left"
+                className="w-full flex items-center justify-between px-4 py-3 text-left"
               >
                 <span className="text-sm font-semibold flex items-center gap-1.5">
                   <Icon className="w-4 h-4 text-slate-500" />
@@ -124,9 +124,9 @@ export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRef
 
               {/* Expanded detail */}
               {open && (
-                <div className="px-3 pb-2.5 flex flex-col gap-1.5 border-t border-black/5">
+                <div className="px-4 pb-3.5 flex flex-col gap-1.5 border-t border-black/5">
                   {message && (
-                    <p className="text-xs text-slate-600 mt-1.5 leading-relaxed line-clamp-4">
+                    <p className="text-xs text-slate-600 mt-2.5 leading-relaxed line-clamp-4">
                       {message}
                     </p>
                   )}

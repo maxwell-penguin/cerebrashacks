@@ -77,21 +77,36 @@ export default function LandingScreen({ onGetStarted }: Props) {
           in seconds — no code required.
         </p>
 
-        {/* 3-step flow */}
-        <div className="flex items-center gap-2 sm:gap-3 mb-10 flex-wrap justify-center">
-          <div className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-600 font-medium shadow-sm">
-            <PenLine className="w-4 h-4 text-slate-500" />
-            <span>Your sketch</span>
+        {/* 3-step flow concept cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-3xl w-full px-4 justify-center">
+          <div className="bg-white/90 border border-slate-200/80 rounded-2xl p-6 shadow-md hover:shadow-lg hover:border-slate-350 transition-all text-center flex flex-col items-center">
+            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mb-3.5 border border-slate-100 shadow-sm">
+              <PenLine className="w-5 h-5 text-slate-500" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-800 mb-1.5 uppercase tracking-wide">1. Your Sketch</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Upload a hand-drawn layout photo or write a description to seed your interface.
+            </p>
           </div>
-          <span className="text-slate-300 font-bold text-lg">→</span>
-          <div className="flex items-center gap-2 px-3.5 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-sm text-indigo-700 font-medium shadow-sm">
-            <Bot className="w-4 h-4 text-indigo-500" />
-            <span>6-agent pipeline</span>
+
+          <div className="bg-white/90 border border-indigo-200/80 rounded-2xl p-6 shadow-md hover:shadow-lg hover:border-indigo-350 transition-all text-center flex flex-col items-center">
+            <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center mb-3.5 border border-indigo-100 shadow-sm">
+              <Bot className="w-5 h-5 text-indigo-500" />
+            </div>
+            <h3 className="text-sm font-bold text-indigo-900 mb-1.5 uppercase tracking-wide">2. 6-Agent Pipeline</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Six specialized agents collaborate live to architecture, build, audit, and critique your code.
+            </p>
           </div>
-          <span className="text-slate-300 font-bold text-lg">→</span>
-          <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-medium shadow-sm">
-            <Code2 className="w-4 h-4 text-emerald-500" />
-            <span>Working React app</span>
+
+          <div className="bg-white/90 border border-emerald-200/80 rounded-2xl p-6 shadow-md hover:shadow-lg hover:border-emerald-350 transition-all text-center flex flex-col items-center">
+            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center mb-3.5 border border-emerald-100 shadow-sm">
+              <Code2 className="w-5 h-5 text-emerald-500" />
+            </div>
+            <h3 className="text-sm font-bold text-emerald-900 mb-1.5 uppercase tracking-wide">3. Working App</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Witness your app render live in the browser, complete with clean React + Tailwind code.
+            </p>
           </div>
         </div>
 
