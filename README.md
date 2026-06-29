@@ -69,6 +69,23 @@ python scripts/test_generate_ws.py --sketch scripts/real_dashboard_sketch.jpg \
   --description "admin dashboard with sidebar navigation, header, and two stat cards"
 ```
 
+**Smoke test all endpoints** (backend must be running):
+
+```bash
+cd backend && source .venv/bin/activate
+python scripts/smoke_test.py
+```
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| `ModuleNotFoundError: No module named 'cerebras_cloud'` | venv not activated or deps missing | `source .venv/bin/activate && pip install -r requirements.txt` |
+| WebSocket connection failed | Backend not running | `cd backend && bash dev.sh` |
+| `CEREBRAS_API_KEY not set` | Missing `.env` file | `cp .env.example .env` and fill in keys |
+| `Playwright browser not found` | Chromium not installed | `playwright install chromium` |
+| Auto-refine hangs | LLM call timed out | Check `CEREBRAS_API_KEY` is valid; retry |
+
 ## What's real vs. known limitations
 
 **What works today**
