@@ -228,7 +228,7 @@ async def run_architect(
     await _emit_status(emit, "architect", "thinking", "Designing component tree…")
 
     import os
-    architect_provider = os.environ.get("ARCHITECT_PROVIDER", "cerebras").lower()
+    architect_provider = os.environ.get("ARCHITECT_PROVIDER", "gemma").lower()
     if architect_provider == "gemma":
         model_name = os.environ.get("CEREBRAS_VISION_MODEL", "gemma-4-31b")
         architect_client = CerebrasClient(model=model_name)
