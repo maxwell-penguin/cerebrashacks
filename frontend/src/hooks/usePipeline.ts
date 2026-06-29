@@ -396,11 +396,8 @@ export function usePipeline(wsUrl: string) {
         setState(prev => {
           const agents = { ...prev.agents };
           
-          const hasSerious = lastIssuesList.some((i: any) => i.severity === 'critical' || i.severity === 'major');
           let agentStatus: AgentStatus = 'done';
           if (data.stopped_reason === 'error') {
-            agentStatus = 'error';
-          } else if (hasSerious) {
             agentStatus = 'error';
           } else if (lastIssuesList.length > 0) {
             agentStatus = 'warn';
