@@ -140,6 +140,10 @@ class WSPipelineComplete(BaseModel):
     issues: list[NormalizedIssue] = Field(default_factory=list)
     vision: dict[str, Any] | None = None
     architecture: dict[str, Any] | None = None
+    audit: dict[str, Any] | None = None
+    visual_check: dict[str, Any] | None = None
+    accessibility_code: str | None = None
+    message: str | None = None
 
 
 #  Chat models
