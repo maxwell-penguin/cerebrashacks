@@ -18,6 +18,8 @@ RUN playwright install chromium && playwright install-deps chromium
 
 COPY . .
 
+RUN chmod +x /app/entrypoint.sh
+
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/entrypoint.sh"]
