@@ -45,6 +45,9 @@ export type WSMessage =
       issues?: NormalizedIssue[];
       vision?: Record<string, unknown>;
       architecture?: Record<string, unknown>;
+      audit?: Record<string, unknown>;
+      visual_check?: Record<string, unknown>;
+      accessibility_code?: string | null;
       message?: string;
     };
 
