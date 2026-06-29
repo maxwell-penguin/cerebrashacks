@@ -7,6 +7,7 @@ import UploadPane from './components/UploadPane';
 import IssuesPanel from './components/IssuesPanel';
 import HistoryBar, { RunHistoryItem } from './components/HistoryBar';
 import { usePipeline } from './hooks/usePipeline';
+import { useResize } from './hooks/useResize';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
 const WS_URL = API_BASE.replace(/^http/, 'ws') + '/ws';
@@ -42,6 +43,11 @@ function Studio() {
   const [history, setHistory] = useState<RunHistoryItem[]>([]);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
   const isRecordingRun = useRef<boolean>(false);
+
+  // Resizable panels
+  const leftPanel = useResize(288, 200, 500, 'x');   // default 288px (w-72)
+  const rightPanel = useResize(320, 220, 600, 'x');  // default 320px (w-80)
+  const copilotHeight = useResize(180, 100, 500, 'y'); // bottom panel height
 
   const handleImage = useCallback((base64: string, mimeType: string) => {
     setPendingImage({ base64, mime: mimeType });
@@ -174,7 +180,7 @@ function Studio() {
       {/* Three-pane layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left: upload + vision overlay */}
-        <div className="w-72 shrink-0 overflow-hidden">
+        <div className="shrink-0 overflow-hidden" style={{ width: leftPanel.value }}>
           <UploadPane
             inputMode={inputMode}
             setInputMode={setInputMode}
@@ -186,6 +192,12 @@ function Studio() {
             previewUrl={pendingImage?.base64 || null}
           />
         </div>
+
+        {/* Resize handle: left | center */}
+        <div
+          {...leftPanel.handleProps}
+          className="w-1 shrink-0 bg-slate-200 hover:bg-indigo-400 cursor-col-resize transition-colors active:bg-indigo-500 z-20"
+        />
 
         {/* Center: Monaco editor + iframe preview */}
         <div className="flex-1 overflow-hidden">
@@ -201,8 +213,14 @@ function Studio() {
           />
         </div>
 
+        {/* Resize handle: center | right */}
+        <div
+          {...rightPanel.handleProps}
+          className="w-1 shrink-0 bg-slate-200 hover:bg-indigo-400 cursor-col-resize transition-colors active:bg-indigo-500 z-20"
+        />
+
         {/* Right: agent columns + tabs (Issues / Chat) */}
-        <div className="w-80 shrink-0 border-l border-slate-200 flex flex-col bg-slate-100 overflow-hidden">
+        <div className="shrink-0 border-l border-slate-200 flex flex-col bg-slate-100 overflow-hidden" style={{ width: rightPanel.value }}>
           <div className="flex-1 min-h-0">
             <AgentColumns
               agents={state.agents}
@@ -214,6 +232,12 @@ function Studio() {
               isRefining={isRefining}
             />
           </div>
+
+          {/* Resize handle: agents | copilot/issues */}
+          <div
+            {...copilotHeight.handleProps}
+            className="h-1 shrink-0 bg-slate-200 hover:bg-indigo-400 cursor-row-resize transition-colors active:bg-indigo-500 z-20"
+          />
 
           {/* Tab bar */}
           <div className="flex border-t border-slate-200 bg-slate-50 shrink-0 select-none">
@@ -245,7 +269,7 @@ function Studio() {
           </div>
 
           {/* Tab content */}
-          <div className="shrink-0 flex flex-col min-h-0">
+          <div className="shrink-0 flex flex-col overflow-hidden" style={{ height: copilotHeight.value }}>
             {rightTab === 'issues' ? (
               <IssuesPanel issues={state.issues} />
             ) : (
