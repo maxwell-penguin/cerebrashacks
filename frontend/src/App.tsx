@@ -147,7 +147,7 @@ function Studio() {
             <span className="text-[10px] text-slate-400 font-medium tracking-wide">Sketch it. Watch six AI agents build it live.</span>
           </div>
           <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 flex items-center gap-1 shrink-0">
-            ⚡ Powered by Gemma 4 on Cerebras
+            ⚡ Powered by Gemma 4 31B on Cerebras
           </span>
         </div>
 

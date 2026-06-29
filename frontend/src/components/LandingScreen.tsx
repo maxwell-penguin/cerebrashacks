@@ -60,7 +60,6 @@ export default function LandingScreen({ onGetStarted }: Props) {
         <div className="mb-4 inline-flex items-center gap-2.5 bg-amber-50 border border-amber-300 text-amber-800 px-5 py-2.5 rounded-full shadow-sm">
           <span className="text-base leading-none">⚡</span>
           <span className="text-sm font-bold tracking-tight">Powered by Gemma 4 31B on Cerebras</span>
-          <span className="text-amber-400 text-xs font-semibold hidden sm:inline">· ~1 000 tok/s</span>
         </div>
 
         {/* Headline */}
@@ -114,7 +113,7 @@ export default function LandingScreen({ onGetStarted }: Props) {
             {AGENTS.map((agent, i) => (
               <React.Fragment key={agent.name}>
                 <div
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold shadow-sm ${agent.bg} ${agent.border} ${agent.text}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-sm ${agent.bg} ${agent.border} ${agent.text}`}
                 >
                   <agent.icon className="w-3.5 h-3.5" />
                   <span>{agent.name}</span>

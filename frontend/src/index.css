@@ -17,3 +17,12 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+@keyframes card-active-glow {
+  0%, 100% { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+  50% { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+}
+
+.animate-card-active {
+  animation: card-active-glow 1.8s ease-in-out infinite;
+}

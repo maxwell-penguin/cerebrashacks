@@ -80,11 +80,11 @@ export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRef
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
         {allIdle ? (
-          <div className="rounded-lg border border-slate-200 bg-white shadow-sm px-3 py-3">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm px-3 py-3">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">6 agents ready</p>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mt-1">
               {AGENTS.map(({ label, icon: Icon }) => (
-                <div key={label} className="flex items-center gap-1.5 text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-semibold shadow-sm">
+                <div key={label} className="flex items-center gap-1.5 text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-[11px] font-semibold shadow-sm">
                   <Icon className="w-3.5 h-3.5 text-slate-500" />
                   <span>{label}</span>
                 </div>
@@ -101,7 +101,7 @@ export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRef
           return (
             <div
               key={name}
-              className={`rounded-lg border transition-colors duration-300 shadow-sm overflow-hidden ${cfg.bg}`}
+              className={`rounded-xl border transition-colors duration-300 shadow-sm overflow-hidden ${cfg.bg} ${cfg.pulse ? 'animate-card-active' : ''}`}
             >
               {/* Compact row — always visible */}
               <button

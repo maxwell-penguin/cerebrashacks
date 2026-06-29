@@ -119,7 +119,7 @@ export default function EditorPane({
   onDesignEdit,
   errorMsg,
 }: Props) {
-  const [tab, setTab] = useState<Tab>('editor');
+  const [tab, setTab] = useState<Tab>('preview');
   const [srcdoc, setSrcdoc] = useState('');
   const [hasAutoSwitched, setHasAutoSwitched] = useState(false);
   const [copied, setCopied] = useState(false);
