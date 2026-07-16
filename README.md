@@ -3,7 +3,8 @@
 SketchStorm Studio converts a photo of a hand-drawn UI sketch into a working React and Tailwind app in real time. Upload a sketch or snap a sticky-note wireframe, describe what you want, and six specialized AI agents collaborate to build it: a vision agent reads your drawing, an architect plans the layout, code streams live into a Monaco editor, an auditor and accessibility agent harden the output, and a vision critic compares a rendered screenshot against your original intent.
 
 Built at the **Cerebras x Google DeepMind Gemma 4 Hackathon**. Live at [cerebrashacks.vercel.app](https://cerebrashacks.vercel.app).
-Video Demo: https://x.com/wobblbobby/status/2071649115717447968?s=20
+
+  Video Demo: https://x.com/wobblbobby/status/2071649115717447968?s=20
 
 ---
 
