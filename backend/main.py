@@ -32,6 +32,7 @@ from agent_prompts import (
     VISION_PARSER_SYSTEM,
     VISION_PARSER_USER,
 )
+import db
 from orchestrator import (
     RunState,
     _runs,
@@ -64,6 +65,7 @@ _cerebras: CerebrasClient | None = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    db.init_db()
     yield
 
 
@@ -523,6 +525,23 @@ async def websocket_endpoint(ws: WebSocket) -> None:
         while True:
             payload = await ws.receive_json()
             msg_type = payload.get("type")
+            completed: dict[str, Any] | None = None
+
+            if msg_type == "resume_run":
+                saved = db.load_run(str(payload.get("run_id", "")))
+                if saved is None or "_request" not in saved["agent_outputs"]:
+                    await ws.send_json({"type": "error", "message": "Unknown run_id; start a new run."})
+                    continue
+                # Adopt the saved run's identity; replay + skip its finished agents, redo the rest.
+                _runs.pop(run_id, None)
+                run_id = saved["run_id"]
+                _runs[run_id] = RunState(run_id=run_id)
+                await ws.send_json({"type": "run_started", "run_id": run_id})
+                completed = saved["agent_outputs"]
+                payload = completed.pop("_request")
+                msg_type = "generate"
+            elif msg_type == "new_run":  # alias; "generate" is what the current frontend sends
+                msg_type = "generate"
 
             if msg_type != "generate":
                 await ws.send_json({"type": "error", "message": f"Unknown message type: {msg_type}"})
@@ -595,6 +614,9 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                 await ws.send_json(msg)
 
             _runs[run_id].status = "running"
+            if completed is None:
+                db.save_run(run_id, "pending")
+                db.save_agent_output(run_id, "_request", payload)  # inputs, so resume can re-run later agents
             await run_sketchstorm_pipeline(
                 client,
                 image_bytes,
@@ -609,6 +631,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                 screenshot_mime=screenshot_mime,
                 design_contract=payload.get("design_contract", ""),
                 run_id=run_id,
+                completed=completed,
             )
             _runs[run_id].status = "complete"
 

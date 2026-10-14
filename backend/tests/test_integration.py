@@ -13,7 +13,7 @@ from cerebras.cloud.sdk._exceptions import APIConnectionError, APITimeoutError, 
 
 import cerebras_client
 import orchestrator
-from agent_prompts import AUDITOR_SYSTEM
+from agent_prompts import AUDITOR_SYSTEM, VISION_CRITIC_SYSTEM
 from cerebras_client import CerebrasClient
 
 REQ = httpx.Request("POST", "http://fake")
@@ -67,7 +67,7 @@ class FakeCerebrasClient(CerebrasClient):
 
     def vision_call(self, *_args):
         self._tick("vision")
-        return json.dumps(JSON_BY_AGENT["critic" if "vision" in self.log[:-1] else "vision"])
+        return json.dumps(JSON_BY_AGENT["critic" if _args[0] == VISION_CRITIC_SYSTEM else "vision"])
 
 
 @pytest.fixture(autouse=True)

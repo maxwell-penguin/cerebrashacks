@@ -8,6 +8,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+import db
 from agent_prompts import (
     ACCESSIBILITY_SYSTEM,
     ACCESSIBILITY_USER,
@@ -455,7 +456,46 @@ async def _handle_optional_failure(
     await _emit_agent_failure(emit, agent, exc)
 
 
+def _persist(run_id: str | None, agent: str, output: dict[str, Any]) -> None:
+    if run_id:
+        db.save_agent_output(run_id, agent, output)
+
+
+async def _replay(emit: EmitFn, agent: str, output: dict[str, Any]) -> None:
+    """Re-send what a finished agent originally emitted, for a client resuming after a dropped socket."""
+    if "code" in output:
+        await emit({"type": "final_code", "code": output["code"]})
+    else:
+        await emit({"type": "agent_output", "agent": agent, "output": output})
+    await _emit_status(emit, agent, "done", "Restored from saved run")
+
+
 async def run_sketchstorm_pipeline(
+    client: CerebrasClient,
+    image_bytes: bytes | None,
+    description: str,
+    mime_type: str,
+    emit: EmitFn,
+    *,
+    run_id: str | None = None,
+    completed: dict[str, dict[str, Any]] | None = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Persists run status around the pipeline. `completed` = saved agent outputs to replay and skip.
+
+    A dropped client raises out of emit and leaves the status "running", which is what makes it resumable."""
+    if run_id:
+        db.save_run(run_id, "running")
+    result = await _run_pipeline(
+        client, image_bytes, description, mime_type, emit, run_id=run_id, completed=completed or {}, **kwargs
+    )
+    if run_id:
+        # Blocking failures return {}; the no-elements early exit returns no architecture.
+        db.save_run(run_id, "complete" if result.get("architecture") else "failed")
+    return result
+
+
+async def _run_pipeline(
     client: CerebrasClient,
     image_bytes: bytes | None,
     description: str,
@@ -468,6 +508,7 @@ async def run_sketchstorm_pipeline(
     screenshot_mime: str = "image/png",
     design_contract: str = "",
     run_id: str | None = None,
+    completed: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     vision: VisionParseResult | None = None
     architecture: ArchitectResult | None = None
@@ -476,7 +517,10 @@ async def run_sketchstorm_pipeline(
     audit_result: AuditResult | None = None
     visual_check: VisualCheckResult | None = None
 
-    if not image_bytes:
+    if "vision_parser" in completed:
+        vision = VisionParseResult.model_validate(completed["vision_parser"])
+        await _replay(emit, "vision_parser", completed["vision_parser"])
+    elif not image_bytes:
         await _emit_status(emit, "vision_parser", "skipped", "Skipped (no sketch upload)")
     else:
         try:
@@ -508,15 +552,26 @@ async def run_sketchstorm_pipeline(
                 "audit": None,
                 "visual_check": None,
             }
+        _persist(run_id, "vision_parser", vision.model_dump())
+
+    if "architect" in completed:
+        architecture = ArchitectResult.model_validate(completed["architect"])
+        await _replay(emit, "architect", completed["architect"])
+    else:
+        try:
+            architecture = await run_architect(client, vision, description, emit)
+        except Exception as exc:
+            await _handle_blocking_failure(emit, "architect", exc, vision=vision)
+            return {}
+        _persist(run_id, "architect", architecture.model_dump())
 
     try:
-        architecture = await run_architect(client, vision, description, emit)
-    except Exception as exc:
-        await _handle_blocking_failure(emit, "architect", exc, vision=vision)
-        return {}
-
-    try:
-        code = await run_code_forge(client, vision, architecture, description, emit)
+        if "code_forge" in completed:
+            code = completed["code_forge"]["code"]
+            await _replay(emit, "code_forge", completed["code_forge"])
+        else:
+            code = await run_code_forge(client, vision, architecture, description, emit)
+            _persist(run_id, "code_forge", {"code": code})
     except PipelineAgentError as exc:
         await _handle_blocking_failure(
             emit,
@@ -537,9 +592,13 @@ async def run_sketchstorm_pipeline(
         )
         return {}
 
-    if run_audit:
+    if "auditor" in completed:
+        audit_result = AuditResult.model_validate(completed["auditor"])
+        await _replay(emit, "auditor", completed["auditor"])
+    elif run_audit:
         try:
             audit_result = await run_auditor(client, code, emit)
+            _persist(run_id, "auditor", audit_result.model_dump())
         except Exception as exc:
             await _handle_optional_failure(
                 emit,
@@ -550,10 +609,14 @@ async def run_sketchstorm_pipeline(
                 architecture=architecture,
             )
 
-    if run_accessibility_pass:
+    if "accessibility" in completed:
+        accessibility_code = code = completed["accessibility"]["code"]
+        await _replay(emit, "accessibility", completed["accessibility"])
+    elif run_accessibility_pass:
         try:
             accessibility_code = await run_accessibility(client, code, emit)
             code = accessibility_code
+            _persist(run_id, "accessibility", {"code": code})
         except PipelineAgentError as exc:
             await _handle_optional_failure(
                 emit,
@@ -575,7 +638,10 @@ async def run_sketchstorm_pipeline(
                 audit=audit_result,
             )
 
-    if screenshot_bytes:
+    if "vision_critic" in completed:
+        visual_check = VisualCheckResult.model_validate(completed["vision_critic"])
+        await _replay(emit, "vision_critic", completed["vision_critic"])
+    elif screenshot_bytes:
         try:
             visual_check = await run_visual_check(
                 client,
@@ -586,6 +652,7 @@ async def run_sketchstorm_pipeline(
                 emit,
                 run_id,
             )
+            _persist(run_id, "vision_critic", visual_check.model_dump())
         except Exception as exc:
             agent = exc.agent if isinstance(exc, PipelineAgentError) else "vision_critic"
             await _handle_optional_failure(
