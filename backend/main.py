@@ -33,6 +33,8 @@ from agent_prompts import (
     VISION_PARSER_USER,
 )
 from orchestrator import (
+    RunState,
+    _runs,
     get_latest_visual_issues,
     run_accessibility,
     run_auditor,
@@ -476,7 +478,7 @@ async def chat(body: ChatRequest) -> ChatResponse:
         )
     elif body.agent == "critic":
         system_prompt = CRITIC_CHAT_SYSTEM
-        issues_list = get_latest_visual_issues()
+        issues_list = get_latest_visual_issues(body.run_id)
         issues_str = json.dumps(issues_list, indent=2)
         user_text = (
             f"Known issues (JSON):\n{issues_str}\n\n"
@@ -513,6 +515,9 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     """
     await ws.accept()
     client = get_client()
+    run_id = str(uuid.uuid4())
+    _runs[run_id] = RunState(run_id=run_id)
+    await ws.send_json({"type": "run_started", "run_id": run_id})
 
     try:
         while True:
@@ -589,6 +594,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
             async def emit(msg: dict[str, Any]) -> None:
                 await ws.send_json(msg)
 
+            _runs[run_id].status = "running"
             await run_sketchstorm_pipeline(
                 client,
                 image_bytes,
@@ -602,11 +608,14 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                 screenshot_bytes=screenshot_bytes,
                 screenshot_mime=screenshot_mime,
                 design_contract=payload.get("design_contract", ""),
+                run_id=run_id,
             )
+            _runs[run_id].status = "complete"
 
     except WebSocketDisconnect:
         pass
     except Exception as exc:
+        _runs[run_id].status = "failed"
         try:
             await ws.send_json({"type": "error", "message": str(exc)})
             await ws.send_json(
@@ -621,3 +630,5 @@ async def websocket_endpoint(ws: WebSocket) -> None:
             )
         except Exception:
             pass
+    finally:
+        _runs.pop(run_id, None)

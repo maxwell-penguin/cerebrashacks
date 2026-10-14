@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import asyncio
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from agent_prompts import (
@@ -94,17 +95,20 @@ def finalize_visual_check_result(
     )
 
 
-_latest_visual_issues: list[dict[str, Any]] = []
+@dataclass
+class RunState:
+    run_id: str
+    visual_issues: list[str] = field(default_factory=list)
+    agent_outputs: dict[str, Any] = field(default_factory=dict)
+    status: str = "pending"  # pending | running | complete | failed
 
 
-def get_latest_visual_issues() -> list[dict[str, Any]]:
-    global _latest_visual_issues
-    return _latest_visual_issues
+_runs: dict[str, RunState] = {}
 
 
-def set_latest_visual_issues(issues: list[dict[str, Any]]) -> None:
-    global _latest_visual_issues
-    _latest_visual_issues = issues
+def get_latest_visual_issues(run_id: str | None) -> list[dict[str, Any]]:
+    run = _runs.get(run_id) if run_id else None
+    return run.visual_issues if run else []
 
 
 class PipelineAgentError(Exception):
@@ -370,6 +374,7 @@ async def run_visual_check(
     description: str,
     mime_type: str,
     emit: EmitFn | None = None,
+    run_id: str | None = None,
 ) -> VisualCheckResult:
     if emit:
         await _emit_status(emit, "vision_critic", "thinking", "Running visual QA…")
@@ -399,7 +404,8 @@ async def run_visual_check(
     data = extract_json(raw)
     result = VisualCheckResult.model_validate(data)
     finalized = finalize_visual_check_result(result.passed, result.issues, result.summary)
-    set_latest_visual_issues([issue.model_dump() for issue in finalized.issues])
+    if run_id in _runs:
+        _runs[run_id].visual_issues = [issue.model_dump() for issue in finalized.issues]
 
     if emit:
         await emit({"type": "agent_output", "agent": "vision_critic", "output": finalized.model_dump()})
@@ -415,6 +421,7 @@ async def run_visual_check(
     return finalized
 
 
+# Vision/architect/code_forge stop the run; later QA agents just report and we keep the code.
 async def _handle_blocking_failure(
     emit: EmitFn,
     agent: str,
@@ -434,6 +441,7 @@ async def _handle_blocking_failure(
     )
 
 
+# Don't emit pipeline_complete — the caller still finishes with the code we already have.
 async def _handle_optional_failure(
     emit: EmitFn,
     agent: str,
@@ -459,6 +467,7 @@ async def run_sketchstorm_pipeline(
     screenshot_bytes: bytes | None = None,
     screenshot_mime: str = "image/png",
     design_contract: str = "",
+    run_id: str | None = None,
 ) -> dict[str, Any]:
     vision: VisionParseResult | None = None
     architecture: ArchitectResult | None = None
@@ -479,7 +488,7 @@ async def run_sketchstorm_pipeline(
         if vision is not None and not vision.components:
             error_msg = "No UI elements detected in this image. Try a clearer sketch with visible shapes and labels."
             await _emit_status(emit, "vision_parser", "error", error_msg)
-            # Explicitly mark all downstream agents as skipped
+            # Empty parse is valid JSON; continuing would invent a UI from the text prompt.
             await _emit_status(emit, "architect", "skipped", "Skipped (no elements detected)")
             await _emit_status(emit, "code_forge", "skipped", "Skipped (no elements detected)")
             await _emit_status(emit, "auditor", "skipped", "Skipped (no elements detected)")
@@ -575,6 +584,7 @@ async def run_sketchstorm_pipeline(
                 description,
                 screenshot_mime,
                 emit,
+                run_id,
             )
         except Exception as exc:
             agent = exc.agent if isinstance(exc, PipelineAgentError) else "vision_critic"

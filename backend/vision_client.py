@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import os
 
@@ -11,6 +12,7 @@ from cerebras_client import CerebrasClient, build_multimodal_messages
 
 
 def get_vision_provider() -> str:
+    # Anthropic today; Cerebras path is for when Gemma vision is ready.
     return os.environ.get("VISION_PROVIDER", "anthropic").lower()
 
 
@@ -67,7 +69,8 @@ def _call_cerebras(
 ) -> str:
     client = CerebrasClient(model=get_vision_model())
     messages = build_multimodal_messages(system_prompt, user_text, image_bytes, image_mime_type)
-    return client.call(messages, max_tokens=2048, temperature=0.1)
+    # Callers run us in a worker thread, so a private loop is safe; reuses acall's retry/timeout policy.
+    return asyncio.run(client.acall(messages, max_tokens=2048, temperature=0.1))
 
 
 def call_vision_json(

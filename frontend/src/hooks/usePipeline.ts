@@ -286,6 +286,7 @@ export function usePipeline(wsUrl: string) {
         });
 
         if (msg.type === 'pipeline_complete' && msg.success) {
+          // Critic is a follow-up HTTP call so a QA failure doesn't kill the generate socket.
           void runVisualCheck(finalCodeRef.current, descriptionRef.current);
         }
       };
@@ -299,7 +300,7 @@ export function usePipeline(wsUrl: string) {
       };
 
       ws.onclose = ev => {
-        // only treat unexpected close as error
+        // 1000/1001 are a normal hangup; don't flash an error after a finished run.
         if (ev.code !== 1000 && ev.code !== 1001) {
           setState(s => {
             if (s.phase === 'running') {

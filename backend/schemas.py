@@ -160,6 +160,7 @@ class ChatContext(BaseModel):
 class ChatRequest(BaseModel):
     agent: ChatAgent
     message: str
+    run_id: str | None = None
     context: ChatContext = Field(default_factory=ChatContext)
 
 

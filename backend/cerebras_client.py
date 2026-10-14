@@ -131,6 +131,7 @@ class CerebrasClient:
         if not key:
             raise RuntimeError("CEREBRAS_API_KEY is not set")
         self.model = _resolve_model(model)
+        # SDK retries off so they don't stack on the 429/timeout policy below.
         self._sync = Cerebras(api_key=key).with_options(
             timeout=JSON_CALL_TIMEOUT,
             max_retries=0,
@@ -225,6 +226,7 @@ class CerebrasClient:
         iterator = stream.__aiter__()
         while True:
             try:
+                # STREAM_CALL_TIMEOUT only covers create(); this catches a stream that starts then hangs.
                 chunk = await asyncio.wait_for(iterator.__anext__(), timeout=INTER_TOKEN_TIMEOUT)
             except StopAsyncIteration:
                 break
