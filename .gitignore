@@ -226,3 +226,4 @@ backend/tmp/render/
 
 # Auditor JSON debug captures
 backend/tmp/auditor_debug/
+backend/.env.save

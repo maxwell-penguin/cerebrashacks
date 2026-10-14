@@ -6,6 +6,8 @@ import asyncio
 import base64
 import logging
 import os
+import random
+import threading
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from typing import Any, TypeVar
@@ -76,6 +78,98 @@ def build_text_messages(system: str, user: str) -> list[dict[str, Any]]:
     return messages
 
 
+def _jittered(base: float) -> float:
+    return base + random.uniform(0, base * 0.3)
+
+
+class CircuitBreakerOpen(Exception):
+    """Raised instead of calling the API while the breaker is OPEN."""
+
+
+class CircuitBreaker:
+    CLOSED, OPEN, HALF_OPEN = "closed", "open", "half_open"
+
+    def __init__(
+        self,
+        failure_threshold: int = 5,
+        recovery_timeout: float = 30.0,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self._clock = clock
+        self._lock = threading.Lock()
+        self.state = self.CLOSED
+        self._failures = 0
+        self._opened_at = 0.0
+        self._probing = False
+
+    def before_call(self) -> None:
+        """Raise CircuitBreakerOpen, or admit the call (possibly as the HALF_OPEN probe)."""
+        with self._lock:
+            if self.state == self.OPEN:
+                if self._clock() - self._opened_at < self.recovery_timeout:
+                    raise CircuitBreakerOpen("circuit open")
+                self.state = self.HALF_OPEN
+            if self.state == self.HALF_OPEN:
+                if self._probing:  # one probe at a time; the rest wait for its verdict
+                    raise CircuitBreakerOpen("circuit half-open, probe in flight")
+                self._probing = True
+
+    def record(self, ok: bool | None) -> None:
+        """ok=None means the call ended without a verdict (cancelled); it only frees the probe slot."""
+        with self._lock:
+            self._probing = False
+            if ok is None:
+                return
+            if ok:
+                self.state, self._failures = self.CLOSED, 0
+            elif self.state == self.HALF_OPEN or self._failures + 1 >= self.failure_threshold:
+                self.state, self._failures, self._opened_at = self.OPEN, 0, self._clock()
+            else:
+                self._failures += 1
+
+    def call(self, fn: Callable[[], T]) -> T:
+        self.before_call()
+        verdict: bool | None = None
+        try:
+            result = fn()
+            verdict = True
+            return result
+        except Exception:
+            verdict = False
+            raise
+        finally:
+            self.record(verdict)
+
+    async def acall(self, fn: Callable[[], Awaitable[T]]) -> T:
+        self.before_call()
+        verdict: bool | None = None
+        try:
+            result = await fn()
+            verdict = True
+            return result
+        except Exception:
+            verdict = False
+            raise
+        finally:
+            self.record(verdict)
+
+
+# Shared by every client: concurrent runs must see the same view of API health.
+_breaker = CircuitBreaker()
+
+
+def _breaker_rejection(call_name: str, exc: CircuitBreakerOpen) -> BaseException:
+    from orchestrator import PipelineAgentError  # lazy: orchestrator imports this module
+
+    return PipelineAgentError(
+        "cerebras",
+        f"Cerebras API circuit breaker is open ({call_name}); too many recent failures, try again shortly.",
+        cause=exc,
+    )
+
+
 def _is_retryable(exc: BaseException) -> bool:
     return isinstance(exc, (APITimeoutError, asyncio.TimeoutError, StreamStallError))
 
@@ -100,7 +194,7 @@ async def _retry_once_on_rate_limit(
                     call_name,
                     RATE_LIMIT_RETRY_DELAY,
                 )
-                await asyncio.sleep(RATE_LIMIT_RETRY_DELAY)
+                await asyncio.sleep(_jittered(RATE_LIMIT_RETRY_DELAY))
                 continue
             raise
     raise RuntimeError("unreachable")
@@ -207,7 +301,12 @@ class CerebrasClient:
                 temperature=temperature,
             )
 
-        return await _retry_once_on_rate_limit("acall", lambda: _retry_once("acall", _do))
+        try:
+            return await _breaker.acall(
+                lambda: _retry_once_on_rate_limit("acall", lambda: _retry_once("acall", _do))
+            )
+        except CircuitBreakerOpen as exc:
+            raise _breaker_rejection("acall", exc) from exc
 
     async def _iter_stream_tokens(
         self,
@@ -245,6 +344,30 @@ class CerebrasClient:
         max_tokens: int = 8192,
         temperature: float = 0.2,
     ) -> AsyncIterator[str]:
+        try:
+            _breaker.before_call()
+        except CircuitBreakerOpen as exc:
+            raise _breaker_rejection("acall_stream", exc) from exc
+        verdict: bool | None = None  # stays None if the consumer stops early or we're cancelled
+        try:
+            async for token in self._acall_stream_with_retries(
+                messages, max_tokens=max_tokens, temperature=temperature
+            ):
+                yield token
+            verdict = True
+        except Exception:
+            verdict = False
+            raise
+        finally:
+            _breaker.record(verdict)
+
+    async def _acall_stream_with_retries(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        max_tokens: int,
+        temperature: float,
+    ) -> AsyncIterator[str]:
         max_rate_attempts = 3
         for rate_attempt in range(max_rate_attempts):
             try:
@@ -272,7 +395,7 @@ class CerebrasClient:
                         rate_attempt + 1,
                         RATE_LIMIT_RETRY_DELAY,
                     )
-                    await asyncio.sleep(RATE_LIMIT_RETRY_DELAY)
+                    await asyncio.sleep(_jittered(RATE_LIMIT_RETRY_DELAY))
                     continue
                 raise
 
