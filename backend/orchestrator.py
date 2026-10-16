@@ -6,10 +6,13 @@ import json
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from collections.abc import AsyncIterator
 from typing import Any, Literal
 
 import db
 from agent_prompts import (
+    AUTO_REFINE_SYSTEM,
+    AUTO_REFINE_USER,
     ACCESSIBILITY_SYSTEM,
     ACCESSIBILITY_USER,
     ARCHITECT_SYSTEM,
@@ -26,7 +29,8 @@ from agent_prompts import (
     VISION_PARSER_USER,
 )
 from cerebras_client import VISION_CALL_TIMEOUT, CerebrasClient, build_text_messages
-from parsing import extract_code, extract_json, extract_json_with_repair
+from parsing import extract_code, extract_code_defensive, extract_json, extract_json_with_repair
+from render_screenshot import render_jsx_to_screenshot
 from vision_client import call_vision_json
 from schemas import (
     ArchitectResult,
@@ -684,3 +688,71 @@ async def _run_pipeline(
         "audit": audit_result,
         "visual_check": visual_check,
     }
+
+
+def _is_serious(issue: dict[str, Any]) -> bool:
+    return issue.get("severity") in ("critical", "major")
+
+
+async def run_auto_refine(
+    client: CerebrasClient,
+    code: str,
+    issues: list[dict[str, Any]],
+    *,
+    design_contract: str = "",
+    description: str = "",
+    run_id: str | None = None,
+    max_iterations: int = 3,
+) -> AsyncIterator[dict[str, Any]]:
+    """Patch `code` against `issues`, re-check, repeat. Yields one refine_iteration per round,
+    then refine_complete. Failures stop the loop and keep the last good code."""
+    current = code
+    iterations_run = 0
+    stopped_reason = "max_iterations"
+    error: str | None = None
+
+    if not any(_is_serious(i) for i in issues):
+        stopped_reason = "passed"  # nothing worth fixing; don't burn model calls
+    else:
+        for iteration in range(1, max_iterations + 1):
+            try:
+                issues_text = "\n".join(
+                    f"- [{i.get('category', '')}] {i.get('severity', '')}: {i.get('description', '')} "
+                    f"(Suggestion: {i.get('suggestion', '')})"
+                    for i in issues
+                )
+                user_text = AUTO_REFINE_USER.format(
+                    code=current,
+                    issues=issues_text,
+                    design_contract=design_contract or "Match the original sketch layout, spacing, and labels.",
+                    description=description or "Hand-drawn UI sketch converted to React.",
+                )
+                messages = build_text_messages(AUTO_REFINE_SYSTEM, user_text)
+                raw = await asyncio.wait_for(client.acall(messages, max_tokens=8192, temperature=0.2), timeout=25.0)
+                patched = extract_code_defensive(raw)
+                screenshot = await asyncio.to_thread(render_jsx_to_screenshot, patched)
+                check = await run_visual_check(
+                    client, screenshot, design_contract, description, "image/png", emit=None, run_id=run_id
+                )
+            except Exception as exc:
+                stopped_reason, error = "error", str(exc) or type(exc).__name__
+                break
+            current = patched
+            iterations_run = iteration
+            issues = [i.model_dump() for i in check.issues]
+            yield {"type": "refine_iteration", "iteration": iteration, "issues_remaining": issues, "code": current}
+            if check.passed and not any(_is_serious(i) for i in issues):
+                stopped_reason = "passed"
+                break
+
+    if run_id:
+        db.save_agent_output(run_id, "auto_refine", {"code": current})
+    done: dict[str, Any] = {
+        "type": "refine_complete",
+        "final_code": current,
+        "iterations_run": iterations_run,
+        "stopped_reason": stopped_reason,
+    }
+    if error:
+        done["message"] = error
+    yield done

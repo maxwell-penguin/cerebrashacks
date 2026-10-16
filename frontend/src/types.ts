@@ -32,6 +32,7 @@ export interface NormalizedIssue {
 }
 
 export type WSMessage =
+  | { type: 'run_started'; run_id: string }
   | { type: 'agent_status'; agent: AgentName; status: AgentStatus; message?: string }
   | { type: 'agent_token'; agent: AgentName; token: string }
   | { type: 'agent_output'; agent: AgentName; output: Record<string, unknown> }

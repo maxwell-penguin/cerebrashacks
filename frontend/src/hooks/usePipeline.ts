@@ -42,6 +42,7 @@ export function usePipeline(wsUrl: string) {
   const wsRef = useRef<WebSocket | null>(null);
   const descriptionRef = useRef<string>('');
   const finalCodeRef = useRef<string>('');
+  const runIdRef = useRef<string | null>(null);
   const apiBase = useRef(
     wsUrl.replace(/^ws:/, 'http:').replace(/^wss:/, 'https:').replace(/\/ws$/, ''),
   ).current;
@@ -172,6 +173,11 @@ export function usePipeline(wsUrl: string) {
         try {
           msg = JSON.parse(event.data as string);
         } catch {
+          return;
+        }
+
+        if (msg.type === 'run_started') {
+          runIdRef.current = msg.run_id;
           return;
         }
 
@@ -345,112 +351,114 @@ export function usePipeline(wsUrl: string) {
       abortControllerRef.current = controller;
 
       setIsRefining(true);
-      setRefineProgress('Iteration 1 of 3...');
+      setRefineProgress('Starting auto-refine...');
 
-      let currentIter = 1;
-      const progressInterval = setInterval(() => {
-        if (currentIter < 3) {
-          currentIter += 1;
-          setRefineProgress(`Iteration ${currentIter} of 3...`);
-          setState(prev => {
-            const agents = { ...prev.agents };
-            agents['vision_critic'] = {
-              status: 'thinking',
-              message: `Auto-refining: Iteration ${currentIter} of 3...`,
-            };
-            return { ...prev, agents };
-          });
-        }
-      }, 20000);
-
-      setState(prev => {
-        const agents = { ...prev.agents };
-        agents['vision_critic'] = {
-          status: 'thinking',
-          message: 'Auto-refining: Iteration 1 of 3...',
-        };
-        return { ...prev, agents };
-      });
+      const setCriticStatus = (status: AgentStatus, message: string) =>
+        setState(prev => ({
+          ...prev,
+          agents: { ...prev.agents, vision_critic: { status, message } },
+        }));
+      setCriticStatus('thinking', 'Auto-refining...');
 
       const contract =
         description.trim() ||
         'Check for layout alignment, overflow, missing elements, and contrast issues.';
 
-      try {
-        const res = await fetch(`${apiBase}/auto-refine`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, design_contract: contract, description }),
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+      // The backend wants the Critic's raw issues; rebuild them from the unified form.
+      const visualIssues = state.issues
+        .filter(i => i.agent === 'Critic')
+        .map(i => ({
+          category: i.code_region || 'general',
+          severity: i.severity === 'error' ? 'critical' : i.severity === 'warn' ? 'major' : 'minor',
+          description: i.description,
+          suggestion: '',
+        }));
 
-        const lastIssuesList = data.issues_per_iteration?.[data.issues_per_iteration.length - 1] || [];
-        const criticIssues: UnifiedIssue[] = lastIssuesList.map((issue: any) => ({
+      const toCriticIssues = (list: any[]): UnifiedIssue[] =>
+        list.map(issue => ({
           agent: 'Critic',
-          severity: issue.severity === 'critical' ? 'error' : (issue.severity === 'major' ? 'warn' : 'info'),
+          severity: issue.severity === 'critical' ? 'error' : issue.severity === 'major' ? 'warn' : 'info',
           description: issue.description + (issue.suggestion ? ` (Suggestion: ${issue.suggestion})` : ''),
           code_region: issue.category || undefined,
         }));
 
-        setState(prev => {
-          const agents = { ...prev.agents };
-          
-          let agentStatus: AgentStatus = 'done';
-          if (data.stopped_reason === 'error') {
-            agentStatus = 'error';
-          } else if (lastIssuesList.length > 0) {
-            agentStatus = 'warn';
-          }
-          
-          let statusMsg = '';
-          if (data.stopped_reason === 'passed') {
-            statusMsg = `Visual QA passed. Refined over ${data.iterations_run} iteration${data.iterations_run !== 1 ? 's' : ''}.`;
-          } else if (data.stopped_reason === 'error') {
-            statusMsg = `Refinement stopped early due to an error. Iterations: ${data.iterations_run}.`;
-          } else {
-            statusMsg = `Visual QA completed. Refined over ${data.iterations_run} iteration${data.iterations_run !== 1 ? 's' : ''}.`;
-          }
+      let remaining: any[] = [];
 
-          agents['vision_critic'] = { status: agentStatus, message: statusMsg };
-
-          const cleanIssues = (prev.issues || []).filter(i => i.agent !== 'Critic');
-          const newIssues = [...cleanIssues, ...criticIssues];
-
-          return {
+      const onEvent = (evt: any) => {
+        if (evt.type === 'refine_iteration') {
+          remaining = evt.issues_remaining ?? [];
+          const msg = `Auto-refining: iteration ${evt.iteration} of 3 — ${remaining.length} issue${remaining.length !== 1 ? 's' : ''} remaining`;
+          setRefineProgress(msg);
+          setState(prev => ({
             ...prev,
-            finalCode: data.final_code,
-            agents,
-            issues: newIssues,
-          };
-        });
-
-        if (finalCodeRef) {
-          finalCodeRef.current = data.final_code;
+            agents: { ...prev.agents, vision_critic: { status: 'thinking', message: msg } },
+            issues: [...prev.issues.filter(i => i.agent !== 'Critic'), ...toCriticIssues(remaining)],
+          }));
+        } else if (evt.type === 'refine_complete') {
+          const n = evt.iterations_run;
+          const plural = n !== 1 ? 's' : '';
+          let agentStatus: AgentStatus = remaining.length > 0 ? 'warn' : 'done';
+          let statusMsg = `Visual QA completed. Refined over ${n} iteration${plural}.`;
+          if (evt.stopped_reason === 'passed') {
+            statusMsg = `Visual QA passed. Refined over ${n} iteration${plural}.`;
+          } else if (evt.stopped_reason === 'error') {
+            agentStatus = 'error';
+            statusMsg = `Refinement stopped early due to an error. Iterations: ${n}.`;
+          }
+          setState(prev => ({
+            ...prev,
+            finalCode: evt.final_code,
+            agents: { ...prev.agents, vision_critic: { status: agentStatus, message: statusMsg } },
+          }));
+          finalCodeRef.current = evt.final_code;
         }
+      };
 
+      try {
+        const res = await fetch(`${apiBase}/auto-refine`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            design_contract: contract,
+            description,
+            run_id: runIdRef.current,
+            visual_issues: visualIssues,
+          }),
+          signal: controller.signal,
+        });
+        if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+
+        // NDJSON: one JSON event per line.
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+          for (const line of lines) {
+            if (line.trim()) onEvent(JSON.parse(line));
+          }
+        }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
           // User cancelled — nothing to do
         } else {
           console.error('Auto-refine failed:', err);
-          setState(prev => {
-            const agents = { ...prev.agents };
-            agents['vision_critic'] = {
-              status: 'error',
-              message: `Auto-refine failed: ${err instanceof Error ? err.message : String(err)}`,
-            };
-            return { ...prev, agents };
-          });
+          setCriticStatus(
+            'error',
+            `Auto-refine failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
       } finally {
-        clearInterval(progressInterval);
         setIsRefining(false);
         abortControllerRef.current = null;
       }
     },
-    [apiBase],
+    [apiBase, state.issues],
   );
 
   const refineRegion = useCallback(

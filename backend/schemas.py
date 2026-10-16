@@ -173,13 +173,8 @@ class AutoRefineRequest(BaseModel):
     code: str
     design_contract: str = ""
     description: str = ""
-
-
-class AutoRefineResult(BaseModel):
-    final_code: str
-    iterations_run: int
-    stopped_reason: Literal["passed", "max_iterations", "error"]
-    issues_per_iteration: list[list[VisualIssue]] = Field(default_factory=list)
+    run_id: str | None = None
+    visual_issues: list[VisualIssue] = Field(default_factory=list)
 
 
 class DiffStats(BaseModel):

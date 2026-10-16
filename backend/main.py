@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import os
 import uuid
 from contextlib import asynccontextmanager
 from typing import Any
@@ -15,6 +16,7 @@ load_dotenv()
 
 from fastapi import FastAPI, File, Form, UploadFile, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from cerebras_client import CerebrasClient, build_text_messages
 from pipeline_config import RUN_ACCESSIBILITY_DEFAULT, RUN_AUDIT_DEFAULT
@@ -23,8 +25,6 @@ from parsing import extract_code, extract_code_defensive, extract_json, extract_
 from vision_client import call_vision_json
 from agent_prompts import (
     ARCHITECT_CHAT_SYSTEM,
-    AUTO_REFINE_SYSTEM,
-    AUTO_REFINE_USER,
     CRITIC_CHAT_SYSTEM,
     DESIGN_ADVISOR_CHAT_SYSTEM,
     REFINE_REGION_SYSTEM,
@@ -40,6 +40,7 @@ from orchestrator import (
     run_accessibility,
     run_auditor,
     run_sketchstorm_pipeline,
+    run_auto_refine,
     run_visual_check,
     finalize_visual_check_result,
 )
@@ -48,7 +49,6 @@ from schemas import (
     AuditRequest,
     AuditResult,
     AutoRefineRequest,
-    AutoRefineResult,
     ChatRequest,
     ChatResponse,
     DiffStats,
@@ -233,103 +233,27 @@ async def visual_check(body: VisualCheckRequest) -> VisualCheckResult:
     )
 
 
-@app.post("/auto-refine", response_model=AutoRefineResult)
-async def auto_refine(body: AutoRefineRequest) -> AutoRefineResult:
-    """
-    Self-correcting loop that renders, critiques, and patches code up to 3 times.
-    """
-    import os
-    import logging
-
-    log = logging.getLogger(__name__)
-    
-    max_iterations_str = os.environ.get("AUTO_REFINE_MAX_ITERATIONS", "3")
+@app.post("/auto-refine")
+async def auto_refine(body: AutoRefineRequest) -> StreamingResponse:
+    """Streams NDJSON: one refine_iteration per round, then refine_complete."""
     try:
-        max_iterations = int(max_iterations_str)
+        max_iterations = int(os.environ.get("AUTO_REFINE_MAX_ITERATIONS", "3"))
     except ValueError:
         max_iterations = 3
-        
-    client = get_client()
-    
-    current_code = body.code
-    issues_per_iteration = []
-    iterations_run = 0
-    stopped_reason = "max_iterations"
-    
-    for i in range(max_iterations):
-        iterations_run += 1
-        
-        # 1. Render screenshot
-        try:
-            screenshot_bytes = await asyncio.to_thread(render_jsx_to_screenshot, current_code)
-        except Exception as exc:
-            log.warning("Auto-refine render failure on iteration %d: %s", iterations_run, exc)
-            stopped_reason = "error"
-            break
-            
-        # 2. Run visual check
-        try:
-            check_res = await run_visual_check(
-                client,
-                screenshot_bytes,
-                body.design_contract,
-                body.description,
-                "image/png",
-                emit=None,
-            )
-        except Exception as exc:
-            log.warning("Auto-refine QA call failure on iteration %d: %s", iterations_run, exc)
-            stopped_reason = "error"
-            break
-            
-        issues_per_iteration.append(check_res.issues)
-        
-        # 3. Check if passed without serious issues
-        has_serious_issues = any(issue.severity in ("critical", "major") for issue in check_res.issues)
-        if check_res.passed and not has_serious_issues:
-            stopped_reason = "passed"
-            break
-            
-        # If this is the last iteration, don't refine again
-        if iterations_run == max_iterations:
-            break
-            
-        # 4. Refine/patch code
-        try:
-            issues_text = "\n".join([
-                f"- [{issue.category}] {issue.severity}: {issue.description} (Suggestion: {issue.suggestion})"
-                for issue in check_res.issues
-            ])
-            
-            user_text = AUTO_REFINE_USER.format(
-                code=current_code,
-                issues=issues_text,
-                design_contract=body.design_contract or "Match the original sketch layout, spacing, and labels.",
-                description=body.description or "Hand-drawn UI sketch converted to React."
-            )
-            
-            messages = build_text_messages(AUTO_REFINE_SYSTEM, user_text)
-            
-            # Use JSON call timeout (20.0s) or vision call timeout (25.0s)
-            raw_response = await asyncio.wait_for(
-                client.acall(messages, max_tokens=8192, temperature=0.2),
-                timeout=25.0
-            )
-            
-            patched_code = extract_code_defensive(raw_response)
-            current_code = patched_code
-        except Exception as exc:
-            log.warning("Auto-refine code refinement call failure on iteration %d: %s", iterations_run, exc)
-            stopped_reason = "error"
-            # Stop loop and keep the current_code from before this failed iteration
-            break
-            
-    return AutoRefineResult(
-        final_code=current_code,
-        iterations_run=iterations_run,
-        stopped_reason=stopped_reason,
-        issues_per_iteration=issues_per_iteration,
-    )
+
+    async def lines():
+        async for event in run_auto_refine(
+            get_client(),
+            body.code,
+            [i.model_dump() for i in body.visual_issues],
+            design_contract=body.design_contract,
+            description=body.description,
+            run_id=body.run_id,
+            max_iterations=max_iterations,
+        ):
+            yield json.dumps(event) + "\n"
+
+    return StreamingResponse(lines(), media_type="application/x-ndjson")
 
 
 @app.post("/refine-region", response_model=RefineRegionResponse)
