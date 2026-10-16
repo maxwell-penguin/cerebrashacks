@@ -2,14 +2,24 @@ version: "3.9"
 
 services:
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     env_file:
-      - ./backend/.env
+      - ./backend/.env # CEREBRAS_API_KEY, ANTHROPIC_API_KEY
     environment:
-      - CEREBRAS_API_KEY=${CEREBRAS_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DB_PATH=/data/runs.db
+      - VISION_PROVIDER=${VISION_PROVIDER:-anthropic}
+    volumes:
+      - sketchstorm-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
   frontend:
@@ -24,3 +34,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  sketchstorm-data:

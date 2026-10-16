@@ -1,0 +1,10 @@
+.git
+**/__pycache__
+**/*.pyc
+# .env* also covers backend/.env.save
+**/.env*
+**/runs.db
+**/node_modules
+frontend/dist
+# local virtualenv would add hundreds of MB to the build context
+backend/venv

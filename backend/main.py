@@ -6,7 +6,9 @@ import asyncio
 import base64
 import json
 import logging
+import math
 import os
+import time
 import uuid
 from contextlib import asynccontextmanager
 from typing import Any
@@ -15,9 +17,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, File, Form, UploadFile, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, File, Form, Request, UploadFile, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from limits import parse as parse_limit
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from cerebras_client import CerebrasClient, build_text_messages
 from pipeline_config import RUN_ACCESSIBILITY_DEFAULT, RUN_AUDIT_DEFAULT
@@ -66,6 +72,10 @@ from schemas import (
 configure_logging()
 log = logging.getLogger(__name__)
 
+# In-memory, per process. ponytail: use Limiter(storage_uri="redis://...") if you run >1 replica.
+limiter = Limiter(key_func=get_remote_address)
+WS_LIMIT = parse_limit("5/minute")
+
 _cerebras: CerebrasClient | None = None
 
 
@@ -81,6 +91,25 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+
+
+def _retry_after(limit_item: Any, *key: str) -> int:
+    reset_at, _ = limiter.limiter.get_window_stats(limit_item, *key)
+    return max(1, math.ceil(reset_at - time.time()))
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    limit_item, key = request.state.view_rate_limit
+    retry = _retry_after(limit_item, *key)
+    return JSONResponse(
+        {"error": "rate_limit_exceeded", "retry_after_seconds": retry},
+        status_code=429,
+        headers={"Retry-After": str(retry)},
+    )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -106,18 +135,32 @@ def _payload_bool(payload: dict[str, Any], key: str, default: bool) -> bool:
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok", "service": "sketchstorm-backend"}
+    try:
+        with db._connect() as conn:
+            conn.execute("SELECT 1")
+        db_state = "ok"
+    except Exception:
+        db_state = "error"
+    return {
+        "status": "ok" if db_state == "ok" else "degraded",
+        "service": "sketchstorm-backend",
+        "db": db_state,
+        "circuit_breaker": cerebras_client._breaker.state.upper(),
+    }
 
 
 @app.get("/metrics")
-async def metrics() -> dict[str, Any]:
+@limiter.limit("60/minute")
+async def metrics(request: Request) -> dict[str, Any]:
     out = db.compute_metrics()
     out["circuit_breaker_state"] = cerebras_client._breaker.state.upper()
     return out
 
 
 @app.post("/generate", response_model=GenerateResponse)
+@limiter.limit("10/minute")
 async def generate(
+    request: Request,
     image: UploadFile | None = File(None),
     description: str = Form(""),
     run_audit: bool = Form(RUN_AUDIT_DEFAULT),
@@ -247,7 +290,8 @@ async def visual_check(body: VisualCheckRequest) -> VisualCheckResult:
 
 
 @app.post("/auto-refine")
-async def auto_refine(body: AutoRefineRequest) -> StreamingResponse:
+@limiter.limit("10/minute")
+async def auto_refine(request: Request, body: AutoRefineRequest) -> StreamingResponse:
     """Streams NDJSON: one refine_iteration per round, then refine_complete."""
     try:
         max_iterations = int(os.environ.get("AUTO_REFINE_MAX_ITERATIONS", "3"))
@@ -386,7 +430,8 @@ async def refine_region(body: RefineRegionRequest) -> RefineRegionResponse:
 
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat(body: ChatRequest) -> ChatResponse:
+@limiter.limit("30/minute")
+async def chat(request: Request, body: ChatRequest) -> ChatResponse:
     """
     Agent chat/co-pilot endpoint.
     Handles messages to specific agents and returns text reply + structured changes.
@@ -451,6 +496,11 @@ async def websocket_endpoint(ws: WebSocket) -> None:
   Server streams agent_status, agent_token, agent_output, final_code, tps, pipeline_complete.
     """
     await ws.accept()
+    ip = ws.client.host if ws.client else "unknown"
+    if not limiter.limiter.hit(WS_LIMIT, "ws", ip):  # slowapi decorators don't cover websockets
+        await ws.send_json({"error": "rate_limit_exceeded", "retry_after_seconds": _retry_after(WS_LIMIT, "ws", ip)})
+        await ws.close(code=1008)
+        return
     client = get_client()
     run_id = str(uuid.uuid4())
     run_id_var.set(run_id)  # per-connection task context, so every log line below carries it
