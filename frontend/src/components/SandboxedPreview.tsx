@@ -59,12 +59,12 @@ function buildSrcdoc(componentCode: string): string {
 <head>
   <meta charset="UTF-8" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
   <script crossorigin src="https://cdn.jsdelivr.net/npm/@remix-run/router@1.6.2/dist/router.umd.min.js"></script>
   <script crossorigin src="https://cdn.jsdelivr.net/npm/react-router@6.13.0/dist/umd/react-router.production.min.js"></script>
   <script crossorigin src="https://cdn.jsdelivr.net/npm/react-router-dom@6.13.0/dist/umd/react-router-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
   <style>html,body{margin:0;padding:0;background:#f3f4f6}</style>
 </head>
 <body>
