@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import json
 import asyncio
+import logging
+import time
+from contextlib import asynccontextmanager
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from collections.abc import AsyncIterator
 from typing import Any, Literal
 
 import db
+from jsonlog import agent_var, log_event, run_id_var
 from agent_prompts import (
     AUTO_REFINE_SYSTEM,
     AUTO_REFINE_USER,
@@ -114,6 +118,9 @@ _runs: dict[str, RunState] = {}
 def get_latest_visual_issues(run_id: str | None) -> list[dict[str, Any]]:
     run = _runs.get(run_id) if run_id else None
     return run.visual_issues if run else []
+
+
+log = logging.getLogger(__name__)
 
 
 class PipelineAgentError(Exception):
@@ -460,6 +467,29 @@ async def _handle_optional_failure(
     await _emit_agent_failure(emit, agent, exc)
 
 
+@asynccontextmanager
+async def _agent(agent: str, run_id: str | None):
+    """Log start/complete/failed with duration and record the attempt in SQLite for /metrics."""
+    token = agent_var.set(agent)
+    start = time.perf_counter()
+    log_event(log, "agent_started")
+    try:
+        yield
+    except Exception as exc:
+        ms = round((time.perf_counter() - start) * 1000, 1)
+        log_event(log, "agent_failed", logging.ERROR, duration_ms=ms, error=str(exc), error_type=type(exc).__name__)
+        if run_id:
+            db.record_agent_event(run_id, agent, False, ms)
+        raise
+    else:
+        ms = round((time.perf_counter() - start) * 1000, 1)
+        log_event(log, "agent_complete", duration_ms=ms)
+        if run_id:
+            db.record_agent_event(run_id, agent, True, ms)
+    finally:
+        agent_var.reset(token)
+
+
 def _persist(run_id: str | None, agent: str, output: dict[str, Any]) -> None:
     if run_id:
         db.save_agent_output(run_id, agent, output)
@@ -490,13 +520,30 @@ async def run_sketchstorm_pipeline(
     A dropped client raises out of emit and leaves the status "running", which is what makes it resumable."""
     if run_id:
         db.save_run(run_id, "running")
-    result = await _run_pipeline(
-        client, image_bytes, description, mime_type, emit, run_id=run_id, completed=completed or {}, **kwargs
-    )
-    if run_id:
+    run_token = run_id_var.set(run_id) if run_id else None
+    start = time.perf_counter()
+    try:
+        result = await _run_pipeline(
+            client, image_bytes, description, mime_type, emit, run_id=run_id, completed=completed or {}, **kwargs
+        )
         # Blocking failures return {}; the no-elements early exit returns no architecture.
-        db.save_run(run_id, "complete" if result.get("architecture") else "failed")
-    return result
+        ok = bool(result.get("architecture"))
+        if run_id:
+            db.save_run(run_id, "complete" if ok else "failed")
+        log_event(
+            log,
+            "pipeline_complete" if ok else "pipeline_failed",
+            logging.INFO if ok else logging.ERROR,
+            duration_ms=round((time.perf_counter() - start) * 1000, 1),
+        )
+        return result
+    except BaseException as exc:  # e.g. client disconnect mid-run: status stays "running" so it can resume
+        log_event(log, "pipeline_failed", logging.ERROR, error=str(exc), error_type=type(exc).__name__,
+                  duration_ms=round((time.perf_counter() - start) * 1000, 1))
+        raise
+    finally:
+        if run_token is not None:
+            run_id_var.reset(run_token)
 
 
 async def _run_pipeline(
@@ -528,7 +575,8 @@ async def _run_pipeline(
         await _emit_status(emit, "vision_parser", "skipped", "Skipped (no sketch upload)")
     else:
         try:
-            vision = await run_vision_parser(client, image_bytes, description, mime_type, emit)
+            async with _agent("vision_parser", run_id):
+                vision = await run_vision_parser(client, image_bytes, description, mime_type, emit)
         except Exception as exc:
             await _handle_blocking_failure(emit, "vision_parser", exc)
             return {}
@@ -563,7 +611,8 @@ async def _run_pipeline(
         await _replay(emit, "architect", completed["architect"])
     else:
         try:
-            architecture = await run_architect(client, vision, description, emit)
+            async with _agent("architect", run_id):
+                architecture = await run_architect(client, vision, description, emit)
         except Exception as exc:
             await _handle_blocking_failure(emit, "architect", exc, vision=vision)
             return {}
@@ -574,7 +623,8 @@ async def _run_pipeline(
             code = completed["code_forge"]["code"]
             await _replay(emit, "code_forge", completed["code_forge"])
         else:
-            code = await run_code_forge(client, vision, architecture, description, emit)
+            async with _agent("code_forge", run_id):
+                code = await run_code_forge(client, vision, architecture, description, emit)
             _persist(run_id, "code_forge", {"code": code})
     except PipelineAgentError as exc:
         await _handle_blocking_failure(
@@ -601,7 +651,8 @@ async def _run_pipeline(
         await _replay(emit, "auditor", completed["auditor"])
     elif run_audit:
         try:
-            audit_result = await run_auditor(client, code, emit)
+            async with _agent("auditor", run_id):
+                audit_result = await run_auditor(client, code, emit)
             _persist(run_id, "auditor", audit_result.model_dump())
         except Exception as exc:
             await _handle_optional_failure(
@@ -618,7 +669,8 @@ async def _run_pipeline(
         await _replay(emit, "accessibility", completed["accessibility"])
     elif run_accessibility_pass:
         try:
-            accessibility_code = await run_accessibility(client, code, emit)
+            async with _agent("accessibility", run_id):
+                accessibility_code = await run_accessibility(client, code, emit)
             code = accessibility_code
             _persist(run_id, "accessibility", {"code": code})
         except PipelineAgentError as exc:
@@ -647,15 +699,16 @@ async def _run_pipeline(
         await _replay(emit, "vision_critic", completed["vision_critic"])
     elif screenshot_bytes:
         try:
-            visual_check = await run_visual_check(
-                client,
-                screenshot_bytes,
-                design_contract,
-                description,
-                screenshot_mime,
-                emit,
-                run_id,
-            )
+            async with _agent("vision_critic", run_id):
+                visual_check = await run_visual_check(
+                    client,
+                    screenshot_bytes,
+                    design_contract,
+                    description,
+                    screenshot_mime,
+                    emit,
+                    run_id,
+                )
             _persist(run_id, "vision_critic", visual_check.model_dump())
         except Exception as exc:
             agent = exc.agent if isinstance(exc, PipelineAgentError) else "vision_critic"

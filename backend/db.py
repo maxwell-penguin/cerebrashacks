@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import sqlite3
 import time
@@ -24,6 +25,9 @@ def init_db() -> None:
             """
             CREATE TABLE IF NOT EXISTS runs (
                 run_id TEXT PRIMARY KEY, status TEXT, created_at REAL, updated_at REAL
+            );
+            CREATE TABLE IF NOT EXISTS agent_events (
+                run_id TEXT, agent_name TEXT, ok INTEGER, duration_ms REAL, at REAL
             );
             CREATE TABLE IF NOT EXISTS agent_outputs (
                 run_id TEXT, agent_name TEXT, output TEXT, completed_at REAL,
@@ -68,4 +72,42 @@ def load_run(run_id: str) -> dict[str, Any] | None:
         "created_at": row[2],
         "updated_at": row[3],
         "agent_outputs": {name: json.loads(out) for name, out in outputs},
+    }
+
+
+def record_agent_event(run_id: str, agent_name: str, ok: bool, duration_ms: float) -> None:
+    """One row per agent attempt. agent_outputs only ever holds successes, so failures and latency live here."""
+    with _connect() as conn:
+        conn.execute(
+            "INSERT INTO agent_events (run_id, agent_name, ok, duration_ms, at) VALUES (?, ?, ?, ?, ?)",
+            (run_id, agent_name, int(ok), duration_ms, time.time()),
+        )
+
+
+def _percentile(sorted_vals: list[float], p: float) -> float:
+    return sorted_vals[max(0, math.ceil(p * len(sorted_vals)) - 1)]  # nearest-rank
+
+
+def compute_metrics() -> dict[str, Any]:
+    with _connect() as conn:
+        by_status = dict(conn.execute("SELECT status, COUNT(*) FROM runs GROUP BY status"))
+        events = conn.execute("SELECT agent_name, ok, duration_ms FROM agent_events").fetchall()
+    ok_counts: dict[str, int] = {}
+    fail_counts: dict[str, int] = {}
+    latencies: dict[str, list[float]] = {}
+    for agent, ok, ms in events:
+        (ok_counts if ok else fail_counts)[agent] = (ok_counts if ok else fail_counts).get(agent, 0) + 1
+        if ok:
+            latencies.setdefault(agent, []).append(ms)  # successes only: failures are mostly timeouts
+    for vals in latencies.values():
+        vals.sort()
+    return {
+        "runs_total": sum(by_status.values()),
+        "runs_complete": by_status.get("complete", 0),
+        "runs_failed": by_status.get("failed", 0),
+        "runs_in_progress": by_status.get("pending", 0) + by_status.get("running", 0),
+        "agent_success_counts": ok_counts,
+        "agent_failure_counts": fail_counts,
+        "agent_p50_latency_ms": {a: round(_percentile(v, 0.5), 1) for a, v in latencies.items()},
+        "agent_p95_latency_ms": {a: round(_percentile(v, 0.95), 1) for a, v in latencies.items()},
     }

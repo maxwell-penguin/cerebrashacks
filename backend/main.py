@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
@@ -33,6 +34,8 @@ from agent_prompts import (
     VISION_PARSER_USER,
 )
 import db
+import cerebras_client
+from jsonlog import configure_logging, log_event, run_id_var
 from orchestrator import (
     RunState,
     _runs,
@@ -59,6 +62,9 @@ from schemas import (
     VisualCheckRequest,
     VisualCheckResult,
 )
+
+configure_logging()
+log = logging.getLogger(__name__)
 
 _cerebras: CerebrasClient | None = None
 
@@ -101,6 +107,13 @@ def _payload_bool(payload: dict[str, Any], key: str, default: bool) -> bool:
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok", "service": "sketchstorm-backend"}
+
+
+@app.get("/metrics")
+async def metrics() -> dict[str, Any]:
+    out = db.compute_metrics()
+    out["circuit_breaker_state"] = cerebras_client._breaker.state.upper()
+    return out
 
 
 @app.post("/generate", response_model=GenerateResponse)
@@ -262,9 +275,7 @@ async def refine_region(body: RefineRegionRequest) -> RefineRegionResponse:
     Refine a specific region of the React component based on user input.
     """
     import difflib
-    import logging
 
-    log = logging.getLogger(__name__)
     client = get_client()
 
     try:
@@ -367,7 +378,7 @@ async def refine_region(body: RefineRegionRequest) -> RefineRegionResponse:
         )
 
     except Exception as exc:
-        log.error("Region refinement failed: %s", exc)
+        log_event(log, "refine_region_failed", logging.ERROR, error=str(exc))
         raise HTTPException(
             status_code=500,
             detail=f"Failed to refine region: {str(exc)}"
@@ -442,6 +453,8 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     await ws.accept()
     client = get_client()
     run_id = str(uuid.uuid4())
+    run_id_var.set(run_id)  # per-connection task context, so every log line below carries it
+    log_event(log, "websocket_connected")
     _runs[run_id] = RunState(run_id=run_id)
     await ws.send_json({"type": "run_started", "run_id": run_id})
 
@@ -459,6 +472,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                 # Adopt the saved run's identity; replay + skip its finished agents, redo the rest.
                 _runs.pop(run_id, None)
                 run_id = saved["run_id"]
+                run_id_var.set(run_id)
                 _runs[run_id] = RunState(run_id=run_id)
                 await ws.send_json({"type": "run_started", "run_id": run_id})
                 completed = saved["agent_outputs"]
@@ -562,6 +576,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     except WebSocketDisconnect:
         pass
     except Exception as exc:
+        log_event(log, "websocket_error", logging.ERROR, error=str(exc), error_type=type(exc).__name__)
         _runs[run_id].status = "failed"
         try:
             await ws.send_json({"type": "error", "message": str(exc)})
@@ -578,4 +593,5 @@ async def websocket_endpoint(ws: WebSocket) -> None:
         except Exception:
             pass
     finally:
+        log_event(log, "websocket_disconnected")
         _runs.pop(run_id, None)
