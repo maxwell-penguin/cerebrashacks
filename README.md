@@ -1,3 +1,5 @@
+![CI](https://github.com/maxwell-penguin/cerebrashacks/actions/workflows/ci.yml/badge.svg)
+
 # SketchStorm Studio
 
 SketchStorm Studio converts a photo of a hand-drawn UI sketch into a working React and Tailwind app in real time. Upload a sketch or snap a sticky-note wireframe, describe what you want, and six specialized AI agents collaborate to build it: a vision agent reads your drawing, an architect plans the layout, code streams live into a Monaco editor, an auditor and accessibility agent harden the output, and a vision critic compares a rendered screenshot against your original intent.
@@ -43,6 +45,9 @@ Six agents run sequentially, each with a distinct role:
 ## Reliability
 
 The backend is built with production habits in mind. See `cerebras_client.py`, `orchestrator.py`, and `parsing.py`:
+
+The same retry amplification pattern was found and fixed in 
+grafana/loki PR #24057 — the same fix is applied here.
 
 - Per-call timeouts (20-25s for JSON/stream, 8s inter-token stall detection)
 - One retry on rate limits (429) and transient API errors
@@ -100,7 +105,6 @@ Covers agent output schemas, pipeline fault isolation, retry logic, input valida
 
 ## Known limitations
 
-- **Latency** — End-to-end runs take roughly 5-11 seconds depending on sketch complexity, not sub-second
 - **Vision provider** — Sketch parsing uses Claude vision today; Cerebras Gemma 4 vision support is reserved for when it becomes available
 - **Sketch fidelity** — If your drawing uses generic labels the vision agent reads layout well, but downstream agents may invent content from your description rather than the ink. Write key labels legibly for literal text in the output
 - **Vision Critic** — Runs as a follow-up `/visual-check` call triggered by the Studio UI, not inside the core WebSocket chain by default
