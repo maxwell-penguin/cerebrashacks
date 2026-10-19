@@ -1,4 +1,12 @@
-"""JSON extraction helpers for LLM outputs."""
+"""Helpers for pulling structured data and code out of raw LLM output.
+
+Responsibilities: strip markdown fences, extract JSON objects (with a repair pass that asks the
+model to fix invalid JSON), extract code blocks defensively, and optionally dump failing
+outputs for debugging when AUDITOR_JSON_DEBUG is set.
+
+Interacts with: orchestrator.py and main.py (every agent that returns JSON or code) and
+cerebras_client.py (the repair pass calls back into the client).
+"""
 
 from __future__ import annotations
 
@@ -42,6 +50,7 @@ def _json_debug_write(agent: str, stage: str, content: str) -> None:
 
 
 def strip_code_fences(text: str) -> str:
+    """Remove one surrounding markdown code fence (``` or ```json etc.) from model output, if present."""
     text = text.strip()
     fence = re.match(r"^```(?:json|jsx|javascript|tsx?)?\s*\n?(.*?)\n?```\s*$", text, re.DOTALL)
     if fence:
@@ -50,6 +59,11 @@ def strip_code_fences(text: str) -> str:
 
 
 def extract_json(text: str) -> dict[str, Any]:
+    """Parse a JSON object out of model output, tolerating code fences and surrounding prose.
+
+    Raises:
+        ValueError: No parseable JSON object was found.
+    """
     cleaned = strip_code_fences(text)
     try:
         return json.loads(cleaned)
@@ -111,6 +125,7 @@ async def extract_json_with_repair(
 
 
 def extract_code(text: str) -> str:
+    """Strip code fences from model output and return the code."""
     cleaned = strip_code_fences(text)
     if cleaned.startswith("import ") or cleaned.startswith("function ") or cleaned.startswith("export "):
         return cleaned

@@ -1,4 +1,9 @@
-"""Agent system prompts for SketchStorm Studio."""
+"""System and user prompt templates for every SketchStorm agent.
+
+Contains the Vision Parser, Architect, Code Forge, Auditor, Accessibility and Vision Critic prompts,
+plus the auto-refine, region-refine and chat prompts. Templates use `str.format` placeholders that
+orchestrator.py and main.py fill in. This module holds text only and has no imports or logic.
+"""
 
 VISION_PARSER_SYSTEM = """You are the Vision Parser agent for SketchStorm Studio.
 You analyze hand-drawn UI sketches and return ONLY valid JSON (no markdown fences).

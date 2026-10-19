@@ -113,9 +113,18 @@ function buildSrcdoc(componentCode: string): string {
 }
 
 interface Props {
+  /** Raw component source as the Code Forge emits it (imports, `export default`, JSX). It is rewritten and transpiled inside the iframe. */
   code: string;
 }
 
+/**
+ * Runs generated React code in a sandboxed iframe and resizes the iframe to fit its content.
+ *
+ * The iframe uses sandbox="allow-scripts" without allow-same-origin, so the untrusted code gets an opaque
+ * origin and cannot read the app's cookies, storage or DOM. Babel and React load inside the frame (not in
+ * the parent). The frame reports its height with postMessage; the parent accepts only messages whose
+ * `source` is this iframe.
+ */
 export default function SandboxedPreview({ code }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(0);

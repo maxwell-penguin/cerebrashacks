@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
- * Returns [value, setValue, handleProps] for a resizable dimension.
- * Attach {...handleProps} to a drag handle element.
+ * Hook for a drag-resizable pane dimension.
+ *
+ * @param initial Starting size in px.
+ * @param min Smallest allowed size.
+ * @param max Largest allowed size.
+ * @param axis 'x' resizes horizontally, 'y' vertically.
+ * @param invert Flip the drag direction, for handles on the opposite edge.
+ * @returns `{ value, setValue, handleProps }`; spread `handleProps` onto the drag handle element.
  */
 export function useResize(
   initial: number,

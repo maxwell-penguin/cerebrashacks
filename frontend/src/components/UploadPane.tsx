@@ -3,16 +3,28 @@ import { Image, FileText, ImagePlus, AlertTriangle } from 'lucide-react';
 import type { VisionComponent, VisionParseResult } from '../types';
 
 interface Props {
+  /** Which input is active: an image upload or a text description. */
   inputMode: 'sketch' | 'text';
+  /** Switch between sketch and text input. */
   setInputMode: (mode: 'sketch' | 'text') => void;
+  /** The text description (required in text mode, optional extra context in sketch mode). */
   description: string;
+  /** Update the description. */
   setDescription: (desc: string) => void;
+  /** Called with the chosen image as base64 (no data-URL prefix) and its MIME type. */
   onImage: (base64: string, mimeType: string) => void;
+  /** Parsed layout; its components are drawn over the sketch. Null before a run finishes. */
   vision: VisionParseResult | null;
+  /** True while a run is in progress; locks the inputs. */
   disabled: boolean;
+  /** Image URL to show initially, e.g. when restoring a run from history. */
   previewUrl?: string | null;
 }
 
+/**
+ * Input pane: upload or drop a sketch image, or type a text description. After a run, draws the detected
+ * components over the sketch.
+ */
 export default function UploadPane({
   inputMode,
   setInputMode,

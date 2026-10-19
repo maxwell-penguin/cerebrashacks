@@ -9,11 +9,18 @@ interface Message {
 }
 
 interface Props {
+  /** Backend HTTP base URL, e.g. "http://localhost:8000". */
   apiBase: string;
+  /** Parsed sketch layout, used as context; null before a run finishes. */
   vision: VisionParseResult | null;
+  /** Current generated code, summarised as context for the agents. */
   finalCode: string;
 }
 
+/**
+ * Chat with one of three agents (architect, design advisor, critic) via POST /chat.
+ * The layout and code summaries sent with each message come from `vision` and `finalCode`.
+ */
 export default function ChatPanel({ apiBase, vision, finalCode }: Props) {
   const [agent, setAgent] = useState<'architect' | 'design_advisor' | 'critic'>('architect');
   const [messages, setMessages] = useState<Message[]>([

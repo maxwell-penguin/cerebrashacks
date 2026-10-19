@@ -3,9 +3,11 @@ import { AlertTriangle, Sparkles } from 'lucide-react';
 import type { UnifiedIssue } from '../types';
 
 interface Props {
+  /** Issues from all agents; grouped by `agent` for display. */
   issues: UnifiedIssue[];
 }
 
+/** Collapsible list of Auditor, A11y and Critic issues, grouped by agent. */
 export default function IssuesPanel({ issues }: Props) {
   const [isOpen, setIsOpen] = useState(false);
 

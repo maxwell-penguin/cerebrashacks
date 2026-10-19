@@ -1,4 +1,17 @@
-"""SQLite persistence so a dropped WebSocket client can resume a run by run_id."""
+"""SQLite persistence for pipeline runs.
+
+Responsibilities:
+  * Store each run's status and each agent's output as it completes, so a client whose WebSocket
+    dropped can resume with its run_id.
+  * Record one row per agent attempt (success, failure, duration) that /metrics aggregates.
+  * Aggregate those tables into the /metrics payload.
+
+Tables: `runs`, `agent_outputs` (successful outputs, keyed by run and agent) and `agent_events`
+(every attempt). The file lives at the DB_PATH environment variable, default backend/runs.db.
+
+Interacts with: main.py (init at startup, resume, /metrics, /health) and orchestrator.py (writes
+status, outputs and attempt timings).
+"""
 
 from __future__ import annotations
 
@@ -20,7 +33,11 @@ def _connect() -> sqlite3.Connection:
 
 
 def init_db() -> None:
+    """Create the SQLite file at DB_PATH and the runs, agent_events and agent_outputs tables if missing; safe to call repeatedly."""
     with _connect() as conn:
+        # agent_events is separate from agent_outputs on purpose: agent_outputs has one row per (run, agent) and only
+        # holds successes (it is what resume replays), while /metrics needs every attempt, including failures,
+        # with durations.
         conn.executescript(
             """
             CREATE TABLE IF NOT EXISTS runs (
@@ -38,6 +55,7 @@ def init_db() -> None:
 
 
 def save_run(run_id: str, status: str) -> None:
+    """Insert a run or update its status; `created_at` is set on first insert, `updated_at` on every call."""
     now = time.time()
     with _connect() as conn:
         conn.execute(
@@ -47,8 +65,19 @@ def save_run(run_id: str, status: str) -> None:
         )
 
 
+# "_request" is a reserved pseudo-agent name: the original WebSocket payload is stored as an agent_outputs row
+# so resume can re-run later agents with the same inputs, without a separate table.
+# TODO: nothing ever deletes old runs, and "_request" rows can hold full uploaded images, so the
+# database grows without bound; add a retention sweep (e.g. delete runs older than N days).
 def save_agent_output(run_id: str, agent_name: str, output: dict[str, Any]) -> None:
     # REPLACE, not plain insert: a resumed run may redo an agent.
+    """Store one agent's output for a run as JSON, replacing any earlier output for the same agent.
+
+    Args:
+        run_id: Run the output belongs to.
+        agent_name: Agent name, or the reserved pseudo-agent "_request" (the saved WebSocket request).
+        output: JSON-serialisable dict.
+    """
     with _connect() as conn:
         conn.execute(
             "INSERT OR REPLACE INTO agent_outputs (run_id, agent_name, output, completed_at) VALUES (?, ?, ?, ?)",
@@ -57,6 +86,12 @@ def save_agent_output(run_id: str, agent_name: str, output: dict[str, Any]) -> N
 
 
 def load_run(run_id: str) -> dict[str, Any] | None:
+    """Load a run and everything saved for it.
+
+    Returns:
+        A dict with run_id, status, created_at, updated_at and `agent_outputs` (agent name -> output,
+        oldest first, including "_request" if present), or None if the run is unknown.
+    """
     with _connect() as conn:
         row = conn.execute(
             "SELECT run_id, status, created_at, updated_at FROM runs WHERE run_id = ?", (run_id,)
@@ -89,6 +124,12 @@ def _percentile(sorted_vals: list[float], p: float) -> float:
 
 
 def compute_metrics() -> dict[str, Any]:
+    """Compute the /metrics numbers from the runs and agent_events tables.
+
+    Returns:
+        Run counts by status, per-agent success and failure counts, and per-agent p50/p95 latency in
+        ms. Latency uses successful attempts only. `circuit_breaker_state` is added by the caller.
+    """
     with _connect() as conn:
         by_status = dict(conn.execute("SELECT status, COUNT(*) FROM runs GROUP BY status"))
         events = conn.execute("SELECT agent_name, ok, duration_ms FROM agent_events").fetchall()
@@ -105,6 +146,8 @@ def compute_metrics() -> dict[str, Any]:
         "runs_total": sum(by_status.values()),
         "runs_complete": by_status.get("complete", 0),
         "runs_failed": by_status.get("failed", 0),
+        # TODO: overcounts. A run whose client dropped stays "pending"/"running" forever (that is what lets it
+        # resume), so it is counted as in progress; track liveness or expire stale runs.
         "runs_in_progress": by_status.get("pending", 0) + by_status.get("running", 0),
         "agent_success_counts": ok_counts,
         "agent_failure_counts": fail_counts,

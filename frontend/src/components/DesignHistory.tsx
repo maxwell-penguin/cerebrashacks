@@ -7,9 +7,11 @@ interface DesignEdit {
 }
 
 interface Props {
+  /** Edits in the order they were made. */
   edits: DesignEdit[];
 }
 
+/** List of Design Mode edits made in this session, or an empty-state message. */
 export default function DesignHistory({ edits }: Props) {
   if (edits.length === 0) {
     return (

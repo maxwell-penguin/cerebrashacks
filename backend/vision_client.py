@@ -1,4 +1,14 @@
-"""Pluggable vision provider for Vision Parser and Vision Critic."""
+"""Pluggable vision provider for the Vision Parser and Vision Critic agents.
+
+Responsibilities: pick a provider from VISION_PROVIDER ("anthropic" by default, or "cerebras") and
+expose one blocking entry point, `call_vision_json`, that sends a prompt plus an image and returns
+raw model text.
+
+Interacts with:
+  * orchestrator.py and main.py: call `call_vision_json` from worker threads.
+  * cerebras_client.py: the Cerebras path reuses `CerebrasClient.acall`, so it gets the same
+    retry, timeout and circuit-breaker behaviour as the text agents. The Anthropic path does not.
+"""
 
 from __future__ import annotations
 
@@ -13,10 +23,16 @@ from cerebras_client import CerebrasClient, build_multimodal_messages
 
 def get_vision_provider() -> str:
     # Anthropic today; Cerebras path is for when Gemma vision is ready.
+    """Return the configured vision provider, "anthropic" (default) or "cerebras", from VISION_PROVIDER."""
     return os.environ.get("VISION_PROVIDER", "anthropic").lower()
 
 
 def get_vision_model() -> str:
+    """Return the model id for the active vision provider.
+
+    Raises:
+        ValueError: VISION_PROVIDER is not "anthropic" or "cerebras".
+    """
     provider = get_vision_provider()
     if provider == "anthropic":
         return os.environ.get("ANTHROPIC_VISION_MODEL", "claude-sonnet-4-6")
@@ -25,6 +41,8 @@ def get_vision_model() -> str:
     raise ValueError(f"Unknown VISION_PROVIDER: {provider!r} (expected 'anthropic' or 'cerebras')")
 
 
+# TODO: the Anthropic path (the default provider) has no retry, backoff or circuit breaker; the only
+# bound is the caller's 25s wait_for. Route it through the same wrapper as the Cerebras path.
 def _call_anthropic(
     system_prompt: str,
     user_text: str,
@@ -69,7 +87,9 @@ def _call_cerebras(
 ) -> str:
     client = CerebrasClient(model=get_vision_model())
     messages = build_multimodal_messages(system_prompt, user_text, image_bytes, image_mime_type)
-    # Callers run us in a worker thread, so a private loop is safe; reuses acall's retry/timeout policy.
+    # call_vision_json is sync and runs in a worker thread (asyncio.to_thread), which has no event loop.
+    # asyncio.run gives acall a private loop, so this path reuses the text agents' retry, timeout and
+    # circuit-breaker logic instead of a bare blocking call.
     return asyncio.run(client.acall(messages, max_tokens=2048, temperature=0.1))
 
 
@@ -79,7 +99,24 @@ def call_vision_json(
     image_bytes: bytes,
     image_mime_type: str,
 ) -> str:
-    """Return raw model text; caller uses parsing.extract_json."""
+    """Send a system prompt, user text and one image to the vision provider; return the raw model text.
+
+    Synchronous and blocking: callers run it in a worker thread (`asyncio.to_thread`). Parsing the
+    JSON out of the reply is the caller's job (`parsing.extract_json`).
+
+    Args:
+        system_prompt: System prompt for the agent.
+        user_text: User-turn text.
+        image_bytes: Raw image bytes.
+        image_mime_type: MIME type of the image (e.g. "image/png").
+
+    Returns:
+        The model's reply text.
+
+    Raises:
+        ValueError: VISION_PROVIDER is not recognised.
+        RuntimeError: The Anthropic provider is selected but ANTHROPIC_API_KEY is unset.
+    """
     provider = get_vision_provider()
     if provider == "anthropic":
         return _call_anthropic(system_prompt, user_text, image_bytes, image_mime_type)

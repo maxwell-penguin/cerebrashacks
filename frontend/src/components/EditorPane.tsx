@@ -6,24 +6,38 @@ import type { AgentState } from '../types';
 import SandboxedPreview from './SandboxedPreview';
 
 interface Props {
+  /** Code streamed so far during a run; shown in the editor while it arrives. */
   streamingCode: string;
+  /** Completed code. Drives the preview and enables editing. */
   finalCode: string;
+  /** Called when the user edits the code or accepts a refinement. */
   onChangeCode?: (code: string) => void;
+  /** Critic status, used to show QA progress in the pane. */
   criticState?: AgentState;
+  /** True while the pipeline runs; makes the editor read-only. */
   isRunning?: boolean;
+  /** Calls POST /refine-region; resolves to the patched code, a summary, diff stats and an optional warning. */
   refineRegion?: (code: string, regionDescription: string, refinementRequest: string, sketchBase64?: string) => Promise<{
     patched_code: string;
     changed_regions_summary: string;
     diff_stats: { lines_changed: number; lines_total: number; change_ratio: number };
     warning: string | null;
   }>;
+  /** Abort an in-flight refinement. */
   cancelRefine?: () => void;
+  /** Called when a Design Mode edit is kept, so the session log can record it. */
   onDesignEdit?: (region: string, prompt: string, mode: string) => void;
+  /** Pipeline error to show in place of the preview. */
   errorMsg?: string;
 }
 
 type Tab = 'editor' | 'preview';
 
+/**
+ * Center pane with two tabs: a Monaco code editor and the live preview (`SandboxedPreview`).
+ * Also hosts Design Mode, where the user describes or sketches a change to one region of the UI and
+ * reviews the patch (via `refineRegion`) before keeping it.
+ */
 export default function EditorPane({
   streamingCode,
   finalCode,

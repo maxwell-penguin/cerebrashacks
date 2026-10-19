@@ -49,15 +49,26 @@ const StatusDot = ({ status }: { status: AgentStatus }) => {
 };
 
 interface Props {
+  /** Status and message for each agent, keyed by agent name. */
   agents: AgentMap;
+  /** Code Forge throughput in tokens per second; null when not streaming. */
   tps: number | null;
+  /** All issues; only those from the Critic are shown on its card. */
   issues: UnifiedIssue[];
+  /** Re-run the visual check on the current code. The button is hidden when omitted. */
   onRerunQA?: () => void;
+  /** Start the auto-refine loop. The button is hidden when omitted. */
   onAutoRefine?: () => void;
+  /** Abort an in-flight auto-refine; the Cancel button shows only while `isRefining`. */
   onCancelRefine?: () => void;
+  /** True while auto-refine runs; disables the Critic buttons. */
   isRefining?: boolean;
 }
 
+/**
+ * Per-agent status cards for the six pipeline agents, with live tokens-per-second.
+ * The Critic card also shows its issues and, once it has finished, Re-run and Auto-refine buttons.
+ */
 export default function AgentColumns({ agents, tps, issues, onRerunQA, onAutoRefine, onCancelRefine, isRefining }: Props) {
   const criticIssues = issues.filter(i => i.agent === 'Critic');
 

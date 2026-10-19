@@ -21,9 +21,11 @@ const AGENTS: { icon: React.ComponentType<{ className?: string }>; name: string;
 ];
 
 interface Props {
+  /** Called when the user clicks the call-to-action. */
   onGetStarted: () => void;
 }
 
+/** Intro screen describing the six agents, with a button into the Studio. */
 export default function LandingScreen({ onGetStarted }: Props) {
   return (
     <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">

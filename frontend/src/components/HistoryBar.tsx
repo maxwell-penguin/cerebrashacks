@@ -1,5 +1,6 @@
 import type { VisionParseResult, UnifiedIssue, AgentMap } from '../types';
 
+/** Snapshot of one finished run, kept in memory so the user can switch back to it. */
 export interface RunHistoryItem {
   id: string;
   timestamp: string;
@@ -13,11 +14,15 @@ export interface RunHistoryItem {
 }
 
 interface Props {
+  /** Runs to show, in display order. */
   history: RunHistoryItem[];
+  /** Id of the run currently shown, highlighted in the strip. */
   activeId: string | null;
+  /** Called with the run the user clicked. */
   onSelect: (item: RunHistoryItem) => void;
 }
 
+/** Strip of thumbnails for earlier runs; selecting one restores it. Renders nothing when there is no history. */
 export default function HistoryBar({ history, activeId, onSelect }: Props) {
   if (history.length === 0) return null;
 

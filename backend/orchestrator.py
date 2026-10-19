@@ -1,4 +1,20 @@
-"""SketchStorm agent pipeline orchestration."""
+"""Agent pipeline orchestration for SketchStorm.
+
+Responsibilities:
+  * Run the six agents in order (Vision Parser, Architect, Code Forge, Auditor, A11y, Critic),
+    streaming progress events through an `emit` callback.
+  * Isolate failures: blocking agents end the run, optional agents are reported and skipped.
+  * Persist each finished agent's output and the run's status to SQLite, and replay saved outputs
+    when a run is resumed.
+  * Time and log every agent call and record it for /metrics.
+  * Hold the in-memory `RunState` registry (`_runs`) used while a WebSocket is open.
+  * Run the auto-refine loop (patch, render, re-check).
+
+Interacts with: cerebras_client.py (text agents), vision_client.py (Vision Parser and Critic),
+db.py (persistence and metrics), jsonlog.py (structured logs), parsing.py and schemas.py (validating
+model output), agent_prompts.py (prompts), render_screenshot.py (Playwright) and main.py (the HTTP
+and WebSocket layer that calls into this module).
+"""
 
 from __future__ import annotations
 
@@ -51,6 +67,7 @@ _SEVERITY_MAP: dict[str, Literal["error", "warn", "info"]] = {"error": "error", 
 
 
 def normalize_auditor_issues(audit: AuditResult | None) -> list[NormalizedIssue]:
+    """Convert Auditor findings to the unified `NormalizedIssue` form the UI shows (severity "warning" becomes "warn"); [] if there was no audit."""
     if not audit:
         return []
     return [
@@ -65,6 +82,7 @@ def normalize_auditor_issues(audit: AuditResult | None) -> list[NormalizedIssue]
 
 
 def derive_visual_check_status(passed: bool, issues: list[VisualIssue]) -> Literal["pass", "pass_with_warnings", "fail"]:
+    """Map the Critic's verdict and issue list to "pass", "pass_with_warnings" or "fail"."""
     if passed and not issues:
         return "pass"
     if passed and issues:
@@ -77,6 +95,7 @@ def derive_visual_check_summary(
     issues: list[VisualIssue],
     fallback: str = "",
 ) -> str:
+    """Return the Critic's summary, or a generated one when the model left it empty."""
     if fallback.strip():
         return fallback
     n = len(issues)
@@ -96,6 +115,13 @@ def finalize_visual_check_result(
     issues: list[VisualIssue],
     summary: str = "",
 ) -> VisualCheckResult:
+    """Build a `VisualCheckResult` with the status and summary derived from the verdict and issues.
+
+    Args:
+        passed: The Critic's pass/fail verdict.
+        issues: Issues the Critic found.
+        summary: The Critic's own summary; a default is derived when empty.
+    """
     return VisualCheckResult(
         passed=passed,
         status=derive_visual_check_status(passed, issues),
@@ -106,6 +132,12 @@ def finalize_visual_check_result(
 
 @dataclass
 class RunState:
+    """In-memory state for one WebSocket connection's run, registered in `_runs` by run_id.
+
+    Holds what other requests need while the socket is open (the Critic's issues for the chat panel).
+    It is dropped when the socket closes; durable state lives in SQLite (see db.py).
+    Note: `agent_outputs` is not populated yet; agent outputs are persisted via db.py.
+    """
     run_id: str
     visual_issues: list[str] = field(default_factory=list)
     agent_outputs: dict[str, Any] = field(default_factory=dict)
@@ -116,6 +148,7 @@ _runs: dict[str, RunState] = {}
 
 
 def get_latest_visual_issues(run_id: str | None) -> list[dict[str, Any]]:
+    """Return the Critic issues recorded for a run, or [] if the run is unknown or already closed."""
     run = _runs.get(run_id) if run_id else None
     return run.visual_issues if run else []
 
@@ -124,6 +157,14 @@ log = logging.getLogger(__name__)
 
 
 class PipelineAgentError(Exception):
+    """An agent failed in a way the pipeline should report.
+
+    Args:
+        agent: Name of the failing agent (e.g. "code_forge").
+        message: Human-readable error.
+        partial_code: Code produced before the failure, if any; sent to the client as final_code.
+        cause: Underlying exception.
+    """
     def __init__(
         self,
         agent: str,
@@ -197,6 +238,17 @@ async def run_vision_parser(
     mime_type: str,
     emit: EmitFn,
 ) -> VisionParseResult:
+    """Vision Parser: read a sketch image into a structured layout.
+
+    A description of exactly "mock_empty" returns an empty parse without calling the model (test hook).
+
+    Returns:
+        The validated `VisionParseResult`.
+
+    Raises:
+        PipelineAgentError: The vision call timed out.
+        ValueError / pydantic.ValidationError: The reply was not valid layout JSON.
+    """
     await _emit_status(emit, "vision_parser", "thinking", "Analyzing sketch…")
 
     extra = f"\nUser context: {description}\n" if description else ""
@@ -241,6 +293,14 @@ async def run_architect(
     description: str,
     emit: EmitFn,
 ) -> ArchitectResult:
+    """Architect: turn the parsed layout (or just the description) into a component plan.
+
+    Uses Gemma (CEREBRAS_VISION_MODEL) unless ARCHITECT_PROVIDER is set to anything else, in which
+    case the injected `client` is used. Invalid JSON gets one repair call.
+
+    Returns:
+        The validated `ArchitectResult`.
+    """
     await _emit_status(emit, "architect", "thinking", "Designing component tree…")
 
     import os
@@ -286,6 +346,14 @@ async def run_code_forge(
     description: str,
     emit: EmitFn,
 ) -> str:
+    """Code Forge: stream the React + Tailwind component for the plan, emitting agent_token / tps events.
+
+    Returns:
+        The generated code.
+
+    Raises:
+        PipelineAgentError: Streaming failed; `partial_code` holds what arrived before the failure.
+    """
     await _emit_status(emit, "code_forge", "streaming", "Generating React code…")
 
     if vision is not None:
@@ -329,6 +397,7 @@ async def run_auditor(
     code: str,
     emit: EmitFn,
 ) -> AuditResult:
+    """Auditor: review `code` and return the validated `AuditResult`; emits agent_output and status events."""
     await _emit_status(emit, "auditor", "thinking", "Reviewing code…")
 
     user = AUDITOR_USER.format(code=code)
@@ -351,6 +420,14 @@ async def run_accessibility(
     code: str,
     emit: EmitFn,
 ) -> str:
+    """A11y: rewrite `code` with accessibility and ARIA fixes, streaming tokens.
+
+    Returns:
+        The revised code.
+
+    Raises:
+        PipelineAgentError: Streaming failed; `partial_code` holds what arrived before the failure.
+    """
     await _emit_status(emit, "accessibility", "streaming", "Adding ARIA + analytics…")
 
     user = ACCESSIBILITY_USER.format(code=code)
@@ -388,6 +465,27 @@ async def run_visual_check(
     emit: EmitFn | None = None,
     run_id: str | None = None,
 ) -> VisualCheckResult:
+    """Critic: judge a rendered screenshot against the design contract.
+
+    Also records the issues on the run's `RunState` (when `run_id` is registered) so the chat panel
+    can discuss them.
+
+    Args:
+        client: Client for the pipeline; the vision call itself goes through vision_client.
+        screenshot_bytes: PNG/JPEG of the rendered UI.
+        design_contract: What the UI should look like.
+        description: The user's request.
+        mime_type: MIME type of the screenshot.
+        emit: Event sink; None for HTTP callers that don't stream.
+        run_id: Run whose `RunState` should receive the issues.
+
+    Returns:
+        The finalized `VisualCheckResult`.
+
+    Raises:
+        PipelineAgentError: The vision call timed out.
+        ValueError / pydantic.ValidationError: The reply was not valid Critic JSON.
+    """
     if emit:
         await _emit_status(emit, "vision_critic", "thinking", "Running visual QA…")
 
@@ -433,7 +531,9 @@ async def run_visual_check(
     return finalized
 
 
-# Vision/architect/code_forge stop the run; later QA agents just report and we keep the code.
+# Blocking agents (vision, architect, code_forge) produce the artifact: without a layout, plan or code
+# there is nothing to return, so the run ends. Optional agents only review or polish code that already
+# exists, so their failure must not throw that code away.
 async def _handle_blocking_failure(
     emit: EmitFn,
     agent: str,
@@ -490,6 +590,8 @@ async def _agent(agent: str, run_id: str | None):
         agent_var.reset(token)
 
 
+# TODO: these SQLite writes are synchronous and run on the event loop; move them to a thread
+# (asyncio.to_thread) if they ever show up in latency.
 def _persist(run_id: str | None, agent: str, output: dict[str, Any]) -> None:
     if run_id:
         db.save_agent_output(run_id, agent, output)
@@ -515,9 +617,33 @@ async def run_sketchstorm_pipeline(
     completed: dict[str, dict[str, Any]] | None = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    """Persists run status around the pipeline. `completed` = saved agent outputs to replay and skip.
+    """Run the full agent pipeline for one request and stream progress through `emit`.
 
-    A dropped client raises out of emit and leaves the status "running", which is what makes it resumable."""
+    Order: Vision Parser, Architect, Code Forge (blocking), then Auditor, A11y, Critic (optional).
+    A blocking failure emits an error plus pipeline_complete(success=False) and returns {}. An
+    optional failure emits an error and the run continues. Exactly one pipeline_complete is emitted
+    per run, except when the client disconnects mid-run (the exception propagates).
+
+    Args:
+        client: Cerebras client used by the text agents.
+        image_bytes: Sketch image, or None for a text-only run (Vision Parser is skipped).
+        description: The user's request.
+        mime_type: MIME type of `image_bytes`.
+        emit: Async callback receiving each event dict (agent_status, agent_token, final_code, ...).
+        run_id: When set, the run's status and every agent output are saved to SQLite and per-agent
+            timings are recorded for /metrics.
+        completed: Saved agent outputs (from `db.load_run`) to replay instead of re-running; this is
+            how a resumed run skips finished agents.
+        **kwargs: run_audit, run_accessibility_pass, screenshot_bytes, screenshot_mime, design_contract.
+
+    Returns:
+        A dict with vision, architecture, code, accessibility_code, audit and visual_check; {} after a
+        blocking failure. The run is saved as "failed" when there is no architecture.
+
+    Raises:
+        Exception: Anything that escapes the agents' own handling, e.g. a closed WebSocket in `emit`.
+            The run stays "running" in SQLite so it can be resumed.
+    """
     if run_id:
         db.save_run(run_id, "running")
     run_token = run_id_var.set(run_id) if run_id else None
@@ -757,8 +883,26 @@ async def run_auto_refine(
     run_id: str | None = None,
     max_iterations: int = 3,
 ) -> AsyncIterator[dict[str, Any]]:
-    """Patch `code` against `issues`, re-check, repeat. Yields one refine_iteration per round,
-    then refine_complete. Failures stop the loop and keep the last good code."""
+    """Patch `code` against the Critic's `issues`, re-render and re-check, up to `max_iterations` rounds.
+
+    Yields one `refine_iteration` event per round (iteration, issues_remaining, code), then a final
+    `refine_complete` (final_code, iterations_run, stopped_reason, plus `message` on error). Stops
+    early when the check passes with no critical/major issues. A failure in any step stops the loop
+    and keeps the last good code. The final code is saved to SQLite as agent "auto_refine" when
+    `run_id` is given.
+
+    Args:
+        client: Cerebras client for the patch call.
+        code: Current code.
+        issues: Critic issues as dicts (category, severity, description, suggestion).
+        design_contract: What the UI should look like.
+        description: The user's request.
+        run_id: Run to save the result under.
+        max_iterations: Round cap.
+
+    Yields:
+        Event dicts; the last one is always `refine_complete`.
+    """
     current = code
     iterations_run = 0
     stopped_reason = "max_iterations"

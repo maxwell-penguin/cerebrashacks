@@ -2,6 +2,7 @@ import { Component, type ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
+  /** Rendered when a child throws; a default message is used when omitted. */
   fallback?: ReactNode;
 }
 
@@ -10,6 +11,7 @@ interface State {
   error: Error | null;
 }
 
+/** Catches render errors in its subtree and shows `fallback` (or a default message) instead of a blank page. */
 export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);

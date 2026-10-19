@@ -1,4 +1,18 @@
-"""Thin wrapper around the Cerebras SDK (OpenAI-compatible chat completions)."""
+"""Cerebras API client: message builders, retry policy and circuit breaker.
+
+Responsibilities:
+  * `CerebrasClient` wraps the Cerebras SDK for sync, async and streaming chat completions.
+  * Retry policy: one immediate retry on timeouts and stream stalls; up to 3 attempts on 429s with a
+    jittered wait so concurrent runs don't retry in lockstep.
+  * `CircuitBreaker` plus one process-wide instance (`_breaker`) that every client shares.
+  * Helpers that build chat message lists for text and image prompts.
+
+Interacts with:
+  * orchestrator.py: every text agent calls `acall` / `acall_stream`; it also raises the
+    `PipelineAgentError` this module imports lazily when the breaker is open.
+  * vision_client.py: the Cerebras vision path calls `acall`.
+  * main.py: reads `_breaker.state` for /health and /metrics.
+"""
 
 from __future__ import annotations
 
@@ -63,6 +77,14 @@ def build_multimodal_messages(
     image_bytes: bytes,
     mime_type: str = "image/jpeg",
 ) -> list[dict[str, Any]]:
+    """Build chat messages for a text + image prompt, with an optional system message.
+
+    Args:
+        system: System prompt; omitted from the messages when empty.
+        user_text: Text part of the user turn.
+        image_bytes: Raw image bytes, sent as a base64 data URL.
+        mime_type: MIME type of the image.
+    """
     messages: list[dict[str, Any]] = []
     if system:
         messages.append({"role": "system", "content": system})
@@ -71,6 +93,7 @@ def build_multimodal_messages(
 
 
 def build_text_messages(system: str, user: str) -> list[dict[str, Any]]:
+    """Build chat messages for a text-only prompt; the system message is omitted when `system` is empty."""
     messages: list[dict[str, Any]] = []
     if system:
         messages.append({"role": "system", "content": system})
@@ -87,6 +110,17 @@ class CircuitBreakerOpen(Exception):
 
 
 class CircuitBreaker:
+    """Thread-safe circuit breaker that stops calling an API that keeps failing.
+
+    States: CLOSED (calls pass; `failure_threshold` consecutive failures trip it), OPEN (calls are
+    rejected without running; after `recovery_timeout` seconds the next call becomes a probe) and
+    HALF_OPEN (one probe call runs; success closes the breaker, failure reopens it).
+
+    Args:
+        failure_threshold: Consecutive failures that open the breaker.
+        recovery_timeout: Seconds to stay OPEN before allowing a probe.
+        clock: Monotonic time source; injectable so tests need not sleep.
+    """
     CLOSED, OPEN, HALF_OPEN = "closed", "open", "half_open"
 
     def __init__(
@@ -112,7 +146,9 @@ class CircuitBreaker:
                     raise CircuitBreakerOpen("circuit open")
                 self.state = self.HALF_OPEN
             if self.state == self.HALF_OPEN:
-                if self._probing:  # one probe at a time; the rest wait for its verdict
+                # Only one probe may run in HALF_OPEN. Otherwise every caller queued behind the open breaker would hit the
+                # recovering API at once the moment the timeout expires, which is the stampede the breaker exists to stop.
+                if self._probing:
                     raise CircuitBreakerOpen("circuit half-open, probe in flight")
                 self._probing = True
 
@@ -130,6 +166,15 @@ class CircuitBreaker:
                 self._failures += 1
 
     def call(self, fn: Callable[[], T]) -> T:
+        """Run a sync `fn` through the breaker.
+
+        Returns:
+            Whatever `fn` returns.
+
+        Raises:
+            CircuitBreakerOpen: The breaker is OPEN (or a HALF_OPEN probe is already running); `fn` is not called.
+            Exception: Anything `fn` raises is re-raised after being counted as a failure.
+        """
         self.before_call()
         verdict: bool | None = None
         try:
@@ -143,6 +188,14 @@ class CircuitBreaker:
             self.record(verdict)
 
     async def acall(self, fn: Callable[[], Awaitable[T]]) -> T:
+        """Run an async `fn` through the breaker; same semantics as `call`.
+
+        Args:
+            fn: Zero-argument callable returning an awaitable. It is called (and awaited) only if admitted.
+
+        Raises:
+            CircuitBreakerOpen: The breaker rejected the call; `fn` was not invoked.
+        """
         self.before_call()
         verdict: bool | None = None
         try:
@@ -156,12 +209,16 @@ class CircuitBreaker:
             self.record(verdict)
 
 
-# Shared by every client: concurrent runs must see the same view of API health.
+# One instance for the whole process. Clients are created per call (the architect and vision paths each
+# build their own), so per-client state would never accumulate failures, and concurrent runs must see
+# the same view of API health.
 _breaker = CircuitBreaker()
 
 
 def _breaker_rejection(call_name: str, exc: CircuitBreakerOpen) -> BaseException:
-    from orchestrator import PipelineAgentError  # lazy: orchestrator imports this module
+    # Imported here, not at module top: orchestrator imports this module at load time, so a top-level
+    # import would be circular.
+    from orchestrator import PipelineAgentError
 
     return PipelineAgentError(
         "cerebras",
@@ -220,6 +277,19 @@ async def _retry_once(
 
 
 class CerebrasClient:
+    """Client for one Cerebras model, with sync, async and streaming chat-completion calls.
+
+    The async methods (`acall`, `acall_stream`) are the ones the pipeline uses: they add one retry
+    on timeouts and stalls, up to 3 attempts with jittered waits on rate limits, and the shared
+    circuit breaker. The SDK's own retries are disabled so they don't stack on that policy.
+
+    Args:
+        api_key: Defaults to the CEREBRAS_API_KEY environment variable.
+        model: Defaults to CEREBRAS_MODEL, then `gpt-oss-120b`.
+
+    Raises:
+        RuntimeError: (on construction) no API key is available.
+    """
     def __init__(self, api_key: str | None = None, model: str | None = None) -> None:
         key = api_key or os.environ.get("CEREBRAS_API_KEY")
         if not key:
@@ -245,6 +315,7 @@ class CerebrasClient:
         max_tokens: int = 4096,
         temperature: float = 0.2,
     ) -> str:
+        """Blocking chat completion with no retry or breaker; returns the message text ("" if empty)."""
         response = self._sync.chat.completions.create(
             model=self.model,
             messages=messages,
@@ -260,6 +331,7 @@ class CerebrasClient:
         max_tokens: int = 8192,
         temperature: float = 0.2,
     ) -> Iterator[str]:
+        """Blocking streaming completion with no retry or breaker; yields content deltas as they arrive."""
         stream = self._sync_stream.chat.completions.create(
             model=self.model,
             messages=messages,
@@ -294,6 +366,22 @@ class CerebrasClient:
         max_tokens: int = 4096,
         temperature: float = 0.2,
     ) -> str:
+        """Async chat completion with retries, jitter and the circuit breaker.
+
+        Timeouts get one immediate retry; 429s get up to 3 attempts with a ~10s jittered wait.
+
+        Args:
+            messages: Chat messages (see `build_text_messages`).
+            max_tokens: Completion token cap.
+            temperature: Sampling temperature.
+
+        Returns:
+            The message text, or "" if the model returned none.
+
+        Raises:
+            PipelineAgentError: The circuit breaker is open.
+            Exception: The last API error once retries are exhausted.
+        """
         async def _do() -> str:
             return await self._acall_once(
                 messages,
@@ -344,6 +432,19 @@ class CerebrasClient:
         max_tokens: int = 8192,
         temperature: float = 0.2,
     ) -> AsyncIterator[str]:
+        """Async streaming completion with retries, jitter and the circuit breaker.
+
+        Retries apply to the whole stream, so a retry after a mid-stream failure restarts it and can
+        yield tokens that were already yielded. A stream with no chunk for 8s raises StreamStallError
+        internally and is retried once.
+
+        Yields:
+            Content deltas (strings) as they arrive.
+
+        Raises:
+            PipelineAgentError: The circuit breaker is open.
+            Exception: The last API error once retries are exhausted.
+        """
         try:
             _breaker.before_call()
         except CircuitBreakerOpen as exc:

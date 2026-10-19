@@ -72,7 +72,9 @@ from schemas import (
 configure_logging()
 log = logging.getLogger(__name__)
 
-# In-memory, per process. ponytail: use Limiter(storage_uri="redis://...") if you run >1 replica.
+# In-memory, per process.
+# TODO: rate limits are per-process and reset on restart, so they are not shared across replicas;
+# use Limiter(storage_uri="redis://...") before running more than one.
 limiter = Limiter(key_func=get_remote_address)
 WS_LIMIT = parse_limit("5/minute")
 
@@ -81,6 +83,7 @@ _cerebras: CerebrasClient | None = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """App lifespan: create the SQLite schema at startup (init_db is idempotent)."""
     db.init_db()
     yield
 
@@ -102,6 +105,7 @@ def _retry_after(limit_item: Any, *key: str) -> int:
 
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    """Turn a slowapi RateLimitExceeded into a 429 JSON body {"error", "retry_after_seconds"} plus a Retry-After header."""
     limit_item, key = request.state.view_rate_limit
     retry = _retry_after(limit_item, *key)
     return JSONResponse(
@@ -121,6 +125,7 @@ app.add_middleware(
 
 
 def get_client() -> CerebrasClient:
+    """Return the process-wide `CerebrasClient`, creating it on first use (so the app can import without an API key)."""
     global _cerebras
     if _cerebras is None:
         _cerebras = CerebrasClient()
@@ -135,6 +140,12 @@ def _payload_bool(payload: dict[str, Any], key: str, default: bool) -> bool:
 
 @app.get("/health")
 async def health() -> dict[str, str]:
+    """Liveness/readiness probe.
+
+    Returns:
+        {"status": "ok"|"degraded", "service", "db": "ok"|"error", "circuit_breaker": "CLOSED"|"OPEN"|"HALF_OPEN"}.
+        "degraded" means the SQLite check failed; the response is still HTTP 200.
+    """
     try:
         with db._connect() as conn:
             conn.execute("SELECT 1")
@@ -152,6 +163,7 @@ async def health() -> dict[str, str]:
 @app.get("/metrics")
 @limiter.limit("60/minute")
 async def metrics(request: Request) -> dict[str, Any]:
+    """Return run counts, per-agent success/failure counts and p50/p95 latency from SQLite, plus the live circuit-breaker state. Limited to 60/min per IP."""
     out = db.compute_metrics()
     out["circuit_breaker_state"] = cerebras_client._breaker.state.upper()
     return out
@@ -223,6 +235,7 @@ async def generate(
 
 @app.post("/audit", response_model=AuditResult)
 async def audit(body: AuditRequest) -> AuditResult:
+    """Run the Auditor on posted code and return its `AuditResult`."""
     client = get_client()
 
     async def noop(_: dict[str, Any]) -> None:
@@ -487,18 +500,31 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
 
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket) -> None:
-    """
-  Primary streaming interface. Client sends:
-    {"type": "generate", "image_base64": "...", "mime_type": "image/jpeg",
-     "description": "...", "run_audit": false, "run_accessibility": false,
-     "screenshot_base64": "...", "design_contract": "..."}
+    """Streaming interface: run the agent pipeline over a WebSocket.
 
-  Server streams agent_status, agent_token, agent_output, final_code, tps, pipeline_complete.
+    Each connection gets a UUID `run_id` (sent first as {"type": "run_started", "run_id"}) and an
+    in-memory `RunState`, which is removed when the socket closes; the SQLite record stays.
+
+    Client messages (one run per message; the socket can be reused):
+      * {"type": "generate" | "new_run", "image_base64", "mime_type", "description", "run_audit",
+        "run_accessibility", "screenshot_base64", "design_contract"} starts a run. Either an image or
+        a non-empty description is required. `new_run` is an alias for `generate`.
+      * {"type": "resume_run", "run_id"} loads that run from SQLite, replays its finished agents, and
+        runs the rest with the saved request. An unknown run_id gets an error message.
+
+    Server events: run_started, agent_status, agent_token, agent_output, final_code, tps, error,
+    pipeline_complete (see schemas.WS*). Invalid input gets an error event, and for bad images also a
+    pipeline_complete(success=False), without closing the socket.
+
+    Rate limit: 5 connections per minute per IP. Over the limit the server accepts, sends
+    {"error": "rate_limit_exceeded", "retry_after_seconds": N}, and closes with code 1008.
     """
     await ws.accept()
     ip = ws.client.host if ws.client else "unknown"
     if not limiter.limiter.hit(WS_LIMIT, "ws", ip):  # slowapi decorators don't cover websockets
         await ws.send_json({"error": "rate_limit_exceeded", "retry_after_seconds": _retry_after(WS_LIMIT, "ws", ip)})
+        # 1008 (policy violation) is the standard "rejected by policy" close code; clients can tell it apart
+        # from a network drop (1006) and avoid a reconnect loop.
         await ws.close(code=1008)
         return
     client = get_client()
@@ -514,6 +540,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
             msg_type = payload.get("type")
             completed: dict[str, Any] | None = None
 
+            # TODO: the frontend never sends resume_run, so resume is API-only; the UI always starts a new run.
             if msg_type == "resume_run":
                 saved = db.load_run(str(payload.get("run_id", "")))
                 if saved is None or "_request" not in saved["agent_outputs"]:
@@ -604,7 +631,9 @@ async def websocket_endpoint(ws: WebSocket) -> None:
             _runs[run_id].status = "running"
             if completed is None:
                 db.save_run(run_id, "pending")
-                db.save_agent_output(run_id, "_request", payload)  # inputs, so resume can re-run later agents
+                # "_request" is a pseudo-agent row: the original payload is stored in agent_outputs (no schema change) so a
+                # resumed run can re-run its remaining agents with the same inputs.
+                db.save_agent_output(run_id, "_request", payload)
             await run_sketchstorm_pipeline(
                 client,
                 image_bytes,

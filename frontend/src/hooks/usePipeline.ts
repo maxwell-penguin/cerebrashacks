@@ -24,8 +24,10 @@ const defaultAgentState = (): AgentState => ({ status: 'idle', message: '' });
 const defaultAgentMap = (): AgentMap =>
   Object.fromEntries(AGENT_NAMES.map(n => [n, defaultAgentState()])) as AgentMap;
 
+/** Lifecycle of a run: idle before/after reset, running while the socket is open, then done or error. */
 export type PipelinePhase = 'idle' | 'running' | 'done' | 'error';
 
+/** Everything the UI renders for the current run. */
 export interface PipelineState {
   phase: PipelinePhase;
   agents: AgentMap;
@@ -38,11 +40,29 @@ export interface PipelineState {
 }
 
 
+/**
+ * Drives a SketchStorm run: opens the /ws WebSocket, folds server events into `state`, and exposes the
+ * follow-up HTTP actions.
+ *
+ * @param wsUrl WebSocket URL of the backend, e.g. "ws://localhost:8000/ws". The HTTP base URL is derived from it.
+ * @returns
+ *   state: current `PipelineState`; setState: escape hatch for the UI to patch it;
+ *   run(image, mime, description): start a run (closes any previous socket);
+ *   reset(): clear state and cancel in-flight work; abort(): close the socket;
+ *   updateFinalCode(code): replace the code after a manual edit or accepted refinement;
+ *   rerunVisualCheck(code): re-run the Critic via POST /visual-check;
+ *   autoRefine(code, description): stream POST /auto-refine, updating status per iteration;
+ *   isRefining / refineProgress: auto-refine status for the UI; cancelOperation(): abort auto-refine;
+ *   refineRegion(code, region, request, sketch?): POST /refine-region, resolves to the patched code.
+ */
 export function usePipeline(wsUrl: string) {
   const wsRef = useRef<WebSocket | null>(null);
+  // Refs hold values the long-lived WebSocket callbacks read; state captured in those closures would be stale.
   const descriptionRef = useRef<string>('');
   const finalCodeRef = useRef<string>('');
+  // Server-assigned run id (from run_started); auto-refine sends it so the result is saved against this run.
   const runIdRef = useRef<string | null>(null);
+  // Derive the HTTP base once (ws://host/ws -> http://host); a ref keeps it stable across renders.
   const apiBase = useRef(
     wsUrl.replace(/^ws:/, 'http:').replace(/^wss:/, 'https:').replace(/\/ws$/, ''),
   ).current;
@@ -58,10 +78,12 @@ export function usePipeline(wsUrl: string) {
   });
 
   // token arrival tracking for manual TPS computation
+  // Arrival times of recent Code Forge tokens; TPS is computed over a 2s sliding window so it tracks current speed.
   const tokenTimestamps = useRef<number[]>([]);
 
   const [isRefining, setIsRefining] = useState(false);
   const [refineProgress, setRefineProgress] = useState('');
+  // Aborts the in-flight auto-refine fetch (Cancel button, or a new run).
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const cancelOperation = useCallback(() => {
@@ -141,6 +163,7 @@ export function usePipeline(wsUrl: string) {
   const run = useCallback(
     (imageBase64: string | null, mimeType: string | null, description: string) => {
       if (wsRef.current) {
+        // Close the previous socket first so a stale run can't keep feeding events into the new one.
         wsRef.current.close();
       }
 
@@ -210,6 +233,7 @@ export function usePipeline(wsUrl: string) {
                   ...tokenTimestamps.current.filter(t => now - t < 2000),
                   now,
                 ];
+                // Tokens in the window divided by the window's elapsed seconds; null until two tokens have arrived.
                 const windowedTps =
                   tokenTimestamps.current.length > 1
                     ? (tokenTimestamps.current.length /
@@ -458,6 +482,7 @@ export function usePipeline(wsUrl: string) {
         abortControllerRef.current = null;
       }
     },
+    // state.issues is a dependency because the Critic's current issues are sent with each auto-refine request.
     [apiBase, state.issues],
   );
 

@@ -6,6 +6,7 @@ import os
 
 
 def env_bool(name: str, default: bool) -> bool:
+    """Read a boolean environment variable ("1", "true", "yes", "on" are true); return `default` when unset."""
     raw = os.environ.get(name)
     if raw is None:
         return default

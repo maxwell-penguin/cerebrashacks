@@ -14,6 +14,7 @@ import { useResize } from './hooks/useResize';
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
 const WS_URL = API_BASE.replace(/^http/, 'ws') + '/ws';
 
+/** Root component: shows the landing screen first, then the Studio workspace. */
 export default function App() {
   const [showLanding, setShowLanding] = useState(true);
 
@@ -24,6 +25,10 @@ export default function App() {
   return <Studio />;
 }
 
+/**
+ * The workspace. Owns the form state (description, sketch, input mode), the run history and the design-edit
+ * log, and wires `usePipeline` to the upload pane, agent columns, editor/preview pane and right-hand tabs.
+ */
 function Studio() {
   const {
     state,
