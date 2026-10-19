@@ -1,0 +1,54 @@
+flowchart TD
+    Browser["Browser<br/>React + Monaco<br/>preview in sandboxed iframe"]
+
+    subgraph Backend["FastAPI backend"]
+        WS["/ws handler<br/>run_id per connection<br/>5 connections/min/IP"]
+
+        subgraph Blocking["BLOCKING: failure ends the run, pipeline_complete success=false"]
+            VP["1. Vision Parser<br/>skipped if no sketch"]
+            AR["2. Architect"]
+            CF["3. Code Forge<br/>streams tokens"]
+            VP --> AR --> CF
+        end
+
+        subgraph Optional["OPTIONAL: failure is reported, run continues with the code so far"]
+            AU["4. Auditor"]
+            A11["5. A11y<br/>rewrites code"]
+            CR["6. Critic<br/>needs a screenshot"]
+            AU --> A11 --> CR
+        end
+
+        CB{{"Circuit breaker<br/>CLOSED / OPEN / HALF_OPEN<br/>shared by all Cerebras calls"}}
+        METRICS["GET /metrics<br/>GET /health"]
+    end
+
+    subgraph Refine["Auto-refine loop: separate request, max 3 rounds, NDJSON stream"]
+        RF["patch code from Critic issues"] --> RENDER["Playwright renders JSX to PNG"] --> RCHECK["visual check"]
+        RCHECK -->|"serious issues remain"| RF
+    end
+
+    DB[("SQLite runs.db<br/>runs, agent_outputs, agent_events")]
+    CER["Cerebras API<br/>gpt-oss-120b, gemma-4-31b"]
+    ANT["Anthropic API<br/>Claude vision"]
+
+    Browser <-->|"WebSocket: generate / resume_run<br/>events: status, tokens, code, pipeline_complete"| WS
+    WS --> VP
+    CF ==>|"code"| AU
+
+    VP -->|"image"| ANT
+    CR -->|"screenshot"| ANT
+    AR --> CB
+    CF --> CB
+    AU --> CB
+    A11 --> CB
+    CB --> CER
+
+    WS -.->|"run status, agent outputs, agent timings"| DB
+    DB -.-> METRICS
+
+    CR -->|"user clicks Auto-refine"| RF
+    RF --> CB
+    RCHECK --> ANT
+    Browser -->|"POST /auto-refine"| RF
+    RF -.->|"refine_iteration / refine_complete"| Browser
+    RF -.->|"final code"| DB

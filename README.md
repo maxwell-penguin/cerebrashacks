@@ -145,6 +145,19 @@ The smoke tests in `backend/scripts/smoke_test.py` call a running server and are
 
 ---
 
+## Eval set
+
+Ran 20 AI-generated wireframe sketches through the full pipeline.
+
+- Render success: 17/20 (85%)
+- Visual QA pass: 13/14 (93%) on runs where Critic completed
+- Median end-to-end latency: ~9s per sketch (rate-limit retries excluded)
+- Most common failure point: `vision_parser` on low-detail sketches
+
+Reproduce with `python backend/scripts/run_eval.py --dir <sketch dir>`; it writes per-sketch results to `eval_results.csv`.
+
+---
+
 ## Known limitations
 
 - **Vision provider** — Sketch parsing uses Claude vision today; Cerebras Gemma 4 vision support is reserved for when it becomes available
